@@ -7,19 +7,48 @@ class Camera{
 
     public:
         Camera(){
-            setBasis(Vector3(0), Vector3(0), Vector3(0));
         }
 
-        Camera(Vector3 position, Vector3 look, Vector3 up){
+        Camera(Vector3 *position, Vector3 *look, Vector3 *up){
             setBasis(position, look, up);
         }
 
-        void setBasis(Vector3 pos, Vector3 lookAtPoint, Vector3 up){
-            this->position = pos;
-            Vector3 lookAtVector = lookAtPoint - this->position;
-            this->w = -lookAtVector;
-            this->u = cross(w, up);
-            this->v = cross(w, u);
+        ~Camera(){
+        }
+
+        void setBasis(Vector3 *pos, Vector3 *lookAtPoint, Vector3 *up){
+            this->position = *pos;
+
+            Vector3 lookAtVector = (*lookAtPoint) - this->position;
+            lookAtVector.normalize();
+
+            Vector3 w = -lookAtVector;
+            Vector3 u = (*up).cross(w);
+            Vector3 v = w.cross(u);
+            
+            w.normalize();
+            u.normalize();
+            v.normalize();
+
+            this->w = w;
+            this->u = u;
+            this->v = v;
+        }
+
+        Vector3 getU(){
+            return this->u;
+        }
+
+        Vector3 getV(){
+            return this->v;
+        }
+
+        Vector3 getW(){
+            return this->w;
+        }
+
+        Vector3 getPos(){
+            return this->position;
         }
 
     private:
@@ -28,4 +57,5 @@ class Camera{
         Vector3 u;
         Vector3 v;
 
-}
+};
+#endif
