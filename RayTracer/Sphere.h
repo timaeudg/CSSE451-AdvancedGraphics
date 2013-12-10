@@ -3,8 +3,9 @@
 
 #include "Ray.h"
 #include "GenVector.h"
+#include "AbstractSurface.h"
 
-class Sphere{
+class Sphere : public AbstractSurface{
 
     public:
         Sphere(){}

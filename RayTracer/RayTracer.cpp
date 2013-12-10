@@ -13,7 +13,7 @@ int main(int argc, char ** argv)
 	//buffer
     int width =  800;
     int height = 800;
-	Buffer buf = Buffer(height, width);
+	Buffer buf = Buffer(width, height);
 
 	//need at least one argument (obj file)
 	if(argc < 2)
@@ -88,8 +88,8 @@ int main(int argc, char ** argv)
     printf("Before Ray generation\n");
     if(camFound){
         RayGenerator rayGen = RayGenerator(&cam, width, height, 90.0);
-        for(int i = height-1; i>=0; i--){
-            for(int k = 0; k<width; k++){
+        for(int i = 0; i<width; i++){
+            for(int k = height-1; k>=0; k--){
                 Ray newRay = rayGen.getRay(k, i);
                 Vector3 rayDirec = newRay.getDirection();
                 float r = abs(rayDirec[0]*255);
@@ -109,7 +109,7 @@ int main(int argc, char ** argv)
                 }
 
 
-                buf.at(k, height - i) = rayDirectionColor;
+                buf.at(k, height-i) = rayDirectionColor;
             }
         }
     }
