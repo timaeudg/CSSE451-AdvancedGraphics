@@ -36,16 +36,35 @@ class Triangle : public AbstractSurface{
 
         Vector3 normal;
 
-        float checkRayHittingPlane(Ray ray){
+        bool checkRayHittingPlane(Ray ray){
             Vector3 a = this->p1;
 
             float top = this->normal.dot((a - ray.getOrigin()));
+            float bottom = ray.getDirection().dot(this->normal);
+            if(bottom == 0){
+                //The ray is parallel to the plane, so no intersection
+                return false;
+            }
 
-            return false;
+            return true;
         }
 
         bool checkHitpointInTriangle(Ray ray){
-            
+            float top = this->normal.dot((this->p1 - ray.getOrigin()));
+            float bottom = ray.getDirection().dot(this->normal);
+
+            float intersectParam = top/bottom;
+
+
+            Vector3 rayPoint = ray.getOrigin() + intersectParam*ray.getDirection();
+
+            float testVal1 = ((p2-p1).cross(rayPoint-p1)).dot(this->normal);
+            float testVal2 = ((p3-p2).cross(rayPoint-p2)).dot(this->normal);
+            float testVal3 = ((p1-p3).cross(rayPoint-p3)).dot(this->normal);
+
+            if(testVal1>0 && testVal2>0 && testVal3>0){
+                return true;
+            }
 
             return false;
         }

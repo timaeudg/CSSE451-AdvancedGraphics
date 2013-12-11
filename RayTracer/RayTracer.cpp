@@ -7,6 +7,7 @@
 #include <math.h>
 #include <vector>
 #include "Sphere.h"
+#include "Triangle.h"
 
 int main(int argc, char ** argv)
 {
@@ -84,6 +85,30 @@ int main(int argc, char ** argv)
             spheres.push_back(sphere);
         }
     }
+
+    std::vector<Triangle> triangles = std::vector<Triangle>();
+    if(objData.faceCount > 0 && objData.faceList != NULL){
+        for(int i = 0; i < objData.faceCount; i++){
+            float p1X = objData.vertexList[ objData.faceList[i]->vertex_index[0] ]->e[0];
+            float p1Y = objData.vertexList[ objData.faceList[i]->vertex_index[0] ]->e[1];
+            float p1Z = objData.vertexList[ objData.faceList[i]->vertex_index[0] ]->e[2];
+
+            float p2X = objData.vertexList[ objData.faceList[i]->vertex_index[1] ]->e[0];
+            float p2Y = objData.vertexList[ objData.faceList[i]->vertex_index[1] ]->e[1];
+            float p2Z = objData.vertexList[ objData.faceList[i]->vertex_index[1] ]->e[2];
+
+            float p3X = objData.vertexList[ objData.faceList[i]->vertex_index[2] ]->e[0];
+            float p3Y = objData.vertexList[ objData.faceList[i]->vertex_index[2] ]->e[1];
+            float p3Z = objData.vertexList[ objData.faceList[i]->vertex_index[2] ]->e[2];
+
+            Vector3 p1 = Vector3(p1X, p1Y, p1Z);
+            Vector3 p2 = Vector3(p2X, p2Y, p2Z);
+            Vector3 p3 = Vector3(p3X, p3Y, p3Z);
+
+            Triangle tri = Triangle(p1, p2, p3);
+            triangles.push_back(tri);
+        }
+    }
     
     printf("Before Ray generation\n");
     if(camFound){
@@ -106,6 +131,15 @@ int main(int argc, char ** argv)
                     if(intersected){
                         rayDirectionColor = Color(0, 0, 0);
                     }
+                }
+
+                for(int j = 0; j<triangles.size(); j++){
+                    Triangle currentTriangle = triangles[j];
+                    bool intersected = currentTriangle.checkIntersection(newRay);
+                    if(intersected){
+                        rayDirectionColor = Color(0, 0, 0);
+                    }
+
                 }
 
 
