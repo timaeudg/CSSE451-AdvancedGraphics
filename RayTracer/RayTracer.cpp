@@ -6,6 +6,7 @@
 #include "RayGenerator.h"
 #include <math.h>
 #include <vector>
+#include <memory>
 #include "AbstractSurface.h"
 #include "Sphere.h"
 #include "Triangle.h"
@@ -14,6 +15,8 @@
 
 template<typename shape>
 Hitpoint* genericGetHitpoint(std::vector<shape>* shapes, Ray* newRay);
+template<typename shape>
+Hitpoint* genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay);
 Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray);
 Scene loadScene(objLoader* objData);
 
@@ -89,37 +92,44 @@ Hitpoint* genericGetHitpoint(std::vector<shape>* shapes, Ray* newRay){
 
 }
 
-Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray){
-    Hitpoint* sphereHitpoint = genericGetHitpoint((*scene).getSpheres(), ray);
-    Hitpoint* triangleHitpoint = genericGetHitpoint((*scene).getTriangles(), ray);
-    
-    if(sphereHitpoint != NULL && triangleHitpoint != NULL){
-        printf("found both\n");
-        float sphereDist = (*sphereHitpoint).getParameter();
-        float triDist = (*triangleHitpoint).getParameter();
-        
-        if(sphereDist<triDist){
-            return sphereHitpoint;
-        } else {
-            return triangleHitpoint;
+template<typename shape>
+Hitpoint* genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay){
+    float smallestIntersected = -1.0;
+    int index = -1;
+    for(int j = 0; j<(*shapes).size(); j++){
+        shape* current = (*shapes)[j];
+        float intersected = current->checkIntersection(*newRay);
+        if(intersected>=0){
+            if(intersected < smallestIntersected || smallestIntersected == -1.0){
+                smallestIntersected = intersected;
+                index = j;
+            }
         }
-        
-    } else if(sphereHitpoint != NULL){
-        printf("found sphere\n");
-        return sphereHitpoint;
-    } else if(triangleHitpoint != NULL){
-        printf("found triangle\n");
-        return triangleHitpoint;
     }
-    else{
-        
+    Hitpoint hit;
+    if(index>=0){
+        hit = Hitpoint(*newRay, smallestIntersected);
+        return &hit;
+    } 
+    return NULL;
+
+}
+
+Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray){
+    Hitpoint* hitpoint = genericGetHitpoint((*scene).getSurfaces(), ray);
+    
+    if(hitpoint != NULL){
+        return hitpoint;
+    } else {
         return NULL;
     }
 }
 
 Scene loadScene(objLoader* objData){
-    bool camFound = false;
     Camera camera;
+    
+    std::vector<AbstractSurface*> surfaces = std::vector<AbstractSurface*>();
+    
 	if((*objData).camera != NULL)
 	{
         float x = (*objData).vertexList[ (*objData).camera->camera_pos_index ]->e[0];
@@ -142,7 +152,6 @@ Scene loadScene(objLoader* objData){
         up.normalize();
 
         camera = Camera(&camPos, &lookAt, &up);
-        camFound = true;
 
 		printf("Found a camera\n");
 		printf(" position: ");
@@ -170,8 +179,8 @@ Scene loadScene(objLoader* objData){
 
             float radius = sphereUp.length();
 
-            Sphere sphere = Sphere(spherePos, radius);
-            spheres.push_back(sphere);
+            Sphere* sphere = new Sphere(spherePos, radius);
+            surfaces.push_back(sphere);
         }
     }
     std::vector<Triangle> triangles = std::vector<Triangle>();
@@ -193,10 +202,10 @@ Scene loadScene(objLoader* objData){
             Vector3 p2 = Vector3(p2X, p2Y, p2Z);
             Vector3 p3 = Vector3(p3X, p3Y, p3Z);
 
-            Triangle tri = Triangle(p1, p2, p3);
-            triangles.push_back(tri);
+            Triangle* tri = new Triangle(p1, p2, p3);
+            surfaces.push_back(tri);
         }
     }
-    return Scene(camera, spheres, triangles);
+    return Scene(camera, surfaces);
 }
 

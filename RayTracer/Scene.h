@@ -10,30 +10,24 @@ class Scene{
     public:
         Scene(){}
         
-        Scene(Camera cam, std::vector<Sphere> spheres, std::vector<Triangle> triangles){
+        Scene(Camera cam, std::vector<AbstractSurface*> surfaces){
             this->cam = cam;
-            this->spheres = spheres;
-            this->triangles = triangles;
+            this->surfaces = surfaces;
         }
         
         Camera* getCamera(){
             return &this->cam;
         }
         
-        std::vector<Sphere>* getSpheres(){
-            return &this->spheres;
-        }
-        
-        std::vector<Triangle>* getTriangles(){
-            return &this->triangles;
+        std::vector<AbstractSurface*>* getSurfaces(){
+            return &this->surfaces;
         }
         
         ~Scene(){}
 
     private:
         Camera cam;
-        std::vector<Sphere> spheres;
-        std::vector<Triangle> triangles;
+        std::vector<AbstractSurface*> surfaces;
 };
 
 #endif

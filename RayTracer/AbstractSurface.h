@@ -10,7 +10,6 @@ class AbstractSurface{
         ~AbstractSurface(){}
 
         virtual float checkIntersection(Ray ray){
-            
         }
 
     private:
