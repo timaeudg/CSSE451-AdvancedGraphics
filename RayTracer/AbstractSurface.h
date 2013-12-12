@@ -9,8 +9,8 @@ class AbstractSurface{
         AbstractSurface(){}
         ~AbstractSurface(){}
 
-        virtual bool checkIntersection(Ray ray){
-            return false;
+        virtual float checkIntersection(Ray ray){
+            
         }
 
     private:

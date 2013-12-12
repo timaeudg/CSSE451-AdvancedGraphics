@@ -22,7 +22,7 @@ class Triangle : public AbstractSurface{
             this->normal = v1.cross(v2);
         }
 
-        bool checkIntersection(Ray ray){
+        float checkIntersection(Ray ray){
             if(checkRayHittingPlane(ray)){
                 return checkHitpointInTriangle(ray);
             }
@@ -49,12 +49,15 @@ class Triangle : public AbstractSurface{
             return true;
         }
 
-        bool checkHitpointInTriangle(Ray ray){
+        float checkHitpointInTriangle(Ray ray){
             float top = this->normal.dot((this->p1 - ray.getOrigin()));
             float bottom = ray.getDirection().dot(this->normal);
 
             float intersectParam = top/bottom;
-
+            
+            if(intersectParam < 0){
+                return -1.0;
+            }
 
             Vector3 rayPoint = ray.getOrigin() + intersectParam*ray.getDirection();
 
@@ -63,10 +66,10 @@ class Triangle : public AbstractSurface{
             float testVal3 = ((p1-p3).cross(rayPoint-p3)).dot(this->normal);
 
             if(testVal1>0 && testVal2>0 && testVal3>0){
-                return true;
+                return intersectParam;
             }
 
-            return false;
+            return -1.0;
         }
 
 };

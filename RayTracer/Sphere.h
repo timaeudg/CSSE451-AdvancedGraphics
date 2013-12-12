@@ -25,7 +25,7 @@ class Sphere : public AbstractSurface{
             this->centerPoint = pos;
         }
 
-        bool checkIntersection(Ray ray){
+        float checkIntersection(Ray ray){
             float A = ray.getDirection().dot(ray.getDirection());
             float B = 2*ray.getDirection().dot((ray.getOrigin() - centerPoint));
             float C = (ray.getOrigin() - centerPoint).dot((ray.getOrigin() - centerPoint)) - (radius*radius);
@@ -34,9 +34,23 @@ class Sphere : public AbstractSurface{
 
             if(rootPart >= 0){
                 //Do more stuff because we probably want the hitpoint, but for now, just return true
-                return true;
+                float topPartPlus = -B+rootPart;
+                float topPartMinus = -B-rootPart;
+                
+                float tPlus = topPartPlus / 2*A;
+                float tMinus = topPartMinus / 2*A;
+                
+                float tFinal = 0.0;
+                
+                if(tPlus < tMinus){
+                    tFinal = tPlus;
+                } else{
+                    tFinal = tMinus;
+                }
+                
+                return tFinal;
             } else {
-                return false;
+                return -1.0;
             }
         }
 

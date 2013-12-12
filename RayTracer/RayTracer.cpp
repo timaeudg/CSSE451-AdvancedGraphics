@@ -6,8 +6,16 @@
 #include "RayGenerator.h"
 #include <math.h>
 #include <vector>
+#include "AbstractSurface.h"
 #include "Sphere.h"
 #include "Triangle.h"
+#include "Hitpoint.h"
+#include "Scene.h"
+
+template<typename shape>
+Hitpoint* genericGetHitpoint(std::vector<shape>* shapes, Ray* newRay);
+Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray);
+Scene loadScene(objLoader* objData);
 
 int main(int argc, char ** argv)
 {
@@ -26,32 +34,114 @@ int main(int argc, char ** argv)
 	//load camera data
 	objLoader objData = objLoader();
 	objData.load(argv[1]);
+    
+    Scene scene = loadScene(&objData);
+    printf("Scene loaded correctly\n");
+    
+    printf("Before Ray generation\n");
+    RayGenerator rayGen = RayGenerator(scene.getCamera(), width, height, 90.0);
+    for(int i = 0; i<width; i++){
+        for(int k = height-1; k>=0; k--){
+            Ray newRay = rayGen.getRay(k, i);
+            Vector3 rayDirec = newRay.getDirection();
+            
+            float r = abs(rayDirec[0]*255);
+            float g = abs(rayDirec[1]*255);
+            float b = abs(rayDirec[2]*255);
+            int rCast = (int)r;
+            int gCast = (int)g;
+            int bCast = (int)b;
+            
+            Color rayDirectionColor = Color(rCast, gCast, bCast);
+            Hitpoint* hit = getPriorityHitpoint(&scene, &newRay);
+            if(hit != NULL){
+                buf.at(k, height-i) = Color(0, 0, 0);
+            } else {
+                buf.at(k, height-i) = rayDirectionColor;
+            }
+        }
+    }
+    printf("Writing file\n");
+	simplePPM_write_ppm("test.ppm", buf.getWidth(), buf.getHeight(), (unsigned char*)&buf.at(0,0));
+	return 0;
+}
 
-    Camera cam;
+template<typename shape>
+Hitpoint* genericGetHitpoint(std::vector<shape>* shapes, Ray* newRay){
+    float smallestIntersected = -1.0;
+    int index = -1;
+    for(int j = 0; j<(*shapes).size(); j++){
+        shape current = (*shapes)[j];
+        float intersected = current.checkIntersection(*newRay);
+        if(intersected>=0){
+            if(intersected < smallestIntersected || smallestIntersected == -1.0){
+                smallestIntersected = intersected;
+                index = j;
+            }
+        }
+    }
+    Hitpoint hit;
+    if(index>=0){
+        hit = Hitpoint(*newRay, smallestIntersected);
+        return &hit;
+    } 
+    return NULL;
+
+}
+
+Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray){
+    Hitpoint* sphereHitpoint = genericGetHitpoint((*scene).getSpheres(), ray);
+    Hitpoint* triangleHitpoint = genericGetHitpoint((*scene).getTriangles(), ray);
+    
+    if(sphereHitpoint != NULL && triangleHitpoint != NULL){
+        printf("found both\n");
+        float sphereDist = (*sphereHitpoint).getParameter();
+        float triDist = (*triangleHitpoint).getParameter();
+        
+        if(sphereDist<triDist){
+            return sphereHitpoint;
+        } else {
+            return triangleHitpoint;
+        }
+        
+    } else if(sphereHitpoint != NULL){
+        printf("found sphere\n");
+        return sphereHitpoint;
+    } else if(triangleHitpoint != NULL){
+        printf("found triangle\n");
+        return triangleHitpoint;
+    }
+    else{
+        
+        return NULL;
+    }
+}
+
+Scene loadScene(objLoader* objData){
     bool camFound = false;
-
-	if(objData.camera != NULL)
+    Camera camera;
+	if((*objData).camera != NULL)
 	{
-        float x = objData.vertexList[ objData.camera->camera_pos_index ]->e[0];
-        float y = objData.vertexList[ objData.camera->camera_pos_index ]->e[1];
-        float z = objData.vertexList[ objData.camera->camera_pos_index ]->e[2];
+        float x = (*objData).vertexList[ (*objData).camera->camera_pos_index ]->e[0];
+        float y = (*objData).vertexList[ (*objData).camera->camera_pos_index ]->e[1];
+        float z = (*objData).vertexList[ (*objData).camera->camera_pos_index ]->e[2];
         
         Vector3 camPos = Vector3(x, y, z);
 
-        float xLook = objData.vertexList[ objData.camera->camera_look_point_index ]->e[0];
-		float yLook = objData.vertexList[ objData.camera->camera_look_point_index ]->e[1];
-		float zLook = objData.vertexList[ objData.camera->camera_look_point_index ]->e[2];
+        float xLook = (*objData).vertexList[ (*objData).camera->camera_look_point_index ]->e[0];
+		float yLook = (*objData).vertexList[ (*objData).camera->camera_look_point_index ]->e[1];
+		float zLook = (*objData).vertexList[ (*objData).camera->camera_look_point_index ]->e[2];
 
         Vector3 lookAt = Vector3(xLook, yLook, zLook);
 
-		float xUp =	objData.normalList[ objData.camera->camera_up_norm_index ]->e[0];
-		float yUp =	objData.normalList[ objData.camera->camera_up_norm_index ]->e[1];
-		float zUp = objData.normalList[ objData.camera->camera_up_norm_index ]->e[2];
+		float xUp =	(*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[0];
+		float yUp =	(*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[1];
+		float zUp = (*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[2];
 	
         Vector3 up = Vector3(xUp, yUp, zUp);
         up.normalize();
 
-        cam = Camera(&camPos, &lookAt, &up);
+        camera = Camera(&camPos, &lookAt, &up);
         camFound = true;
 
 		printf("Found a camera\n");
@@ -64,18 +154,17 @@ int main(int argc, char ** argv)
 	}
 
     std::vector<Sphere> spheres = std::vector<Sphere>();
-
-    if(objData.sphereCount > 0 && objData.sphereList != NULL){
-        for(int i = 0; i < objData.sphereCount; i++){
-            float sphereX =  objData.vertexList[ objData.sphereList[i]->pos_index ]->e[0];
-            float sphereY =  objData.vertexList[ objData.sphereList[i]->pos_index ]->e[1];
-            float sphereZ =  objData.vertexList[ objData.sphereList[i]->pos_index ]->e[2];
+    if((*objData).sphereCount > 0 && (*objData).sphereList != NULL){
+        for(int i = 0; i < (*objData).sphereCount; i++){
+            float sphereX =  (*objData).vertexList[ (*objData).sphereList[i]->pos_index ]->e[0];
+            float sphereY =  (*objData).vertexList[ (*objData).sphereList[i]->pos_index ]->e[1];
+            float sphereZ =  (*objData).vertexList[ (*objData).sphereList[i]->pos_index ]->e[2];
 
             Vector3 spherePos = Vector3(sphereX, sphereY, sphereZ);
 
-            float xUp = objData.normalList [ objData.sphereList[i]->up_normal_index ]->e[0];
-            float yUp = objData.normalList [ objData.sphereList[i]->up_normal_index ]->e[1];
-            float zUp = objData.normalList [ objData.sphereList[i]->up_normal_index ]->e[2];
+            float xUp = (*objData).normalList [ (*objData).sphereList[i]->up_normal_index ]->e[0];
+            float yUp = (*objData).normalList [ (*objData).sphereList[i]->up_normal_index ]->e[1];
+            float zUp = (*objData).normalList [ (*objData).sphereList[i]->up_normal_index ]->e[2];
 
             Vector3 sphereUp = Vector3(xUp, yUp, zUp);
 
@@ -85,21 +174,20 @@ int main(int argc, char ** argv)
             spheres.push_back(sphere);
         }
     }
-
     std::vector<Triangle> triangles = std::vector<Triangle>();
-    if(objData.faceCount > 0 && objData.faceList != NULL){
-        for(int i = 0; i < objData.faceCount; i++){
-            float p1X = objData.vertexList[ objData.faceList[i]->vertex_index[0] ]->e[0];
-            float p1Y = objData.vertexList[ objData.faceList[i]->vertex_index[0] ]->e[1];
-            float p1Z = objData.vertexList[ objData.faceList[i]->vertex_index[0] ]->e[2];
+    if((*objData).faceCount > 0 && (*objData).faceList != NULL){
+        for(int i = 0; i < (*objData).faceCount; i++){
+            float p1X = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[0] ]->e[0];
+            float p1Y = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[0] ]->e[1];
+            float p1Z = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[0] ]->e[2];
 
-            float p2X = objData.vertexList[ objData.faceList[i]->vertex_index[1] ]->e[0];
-            float p2Y = objData.vertexList[ objData.faceList[i]->vertex_index[1] ]->e[1];
-            float p2Z = objData.vertexList[ objData.faceList[i]->vertex_index[1] ]->e[2];
+            float p2X = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[1] ]->e[0];
+            float p2Y = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[1] ]->e[1];
+            float p2Z = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[1] ]->e[2];
 
-            float p3X = objData.vertexList[ objData.faceList[i]->vertex_index[2] ]->e[0];
-            float p3Y = objData.vertexList[ objData.faceList[i]->vertex_index[2] ]->e[1];
-            float p3Z = objData.vertexList[ objData.faceList[i]->vertex_index[2] ]->e[2];
+            float p3X = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[2] ]->e[0];
+            float p3Y = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[2] ]->e[1];
+            float p3Z = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[2] ]->e[2];
 
             Vector3 p1 = Vector3(p1X, p1Y, p1Z);
             Vector3 p2 = Vector3(p2X, p2Y, p2Z);
@@ -109,45 +197,6 @@ int main(int argc, char ** argv)
             triangles.push_back(tri);
         }
     }
-    
-    printf("Before Ray generation\n");
-    if(camFound){
-        RayGenerator rayGen = RayGenerator(&cam, width, height, 90.0);
-        for(int i = 0; i<width; i++){
-            for(int k = height-1; k>=0; k--){
-                Ray newRay = rayGen.getRay(k, i);
-                Vector3 rayDirec = newRay.getDirection();
-                float r = abs(rayDirec[0]*255);
-                float g = abs(rayDirec[1]*255);
-                float b = abs(rayDirec[2]*255);
-                int rCast = (int)r;
-                int gCast = (int)g;
-                int bCast = (int)b;
-                Color rayDirectionColor = Color(rCast, gCast, bCast);
-
-                for(int j = 0; j<spheres.size(); j++){
-                    Sphere currentSphere = spheres[j];
-                    bool intersected = currentSphere.checkIntersection(newRay);
-                    if(intersected){
-                        rayDirectionColor = Color(0, 0, 0);
-                    }
-                }
-
-                for(int j = 0; j<triangles.size(); j++){
-                    Triangle currentTriangle = triangles[j];
-                    bool intersected = currentTriangle.checkIntersection(newRay);
-                    if(intersected){
-                        rayDirectionColor = Color(0, 0, 0);
-                    }
-
-                }
-
-
-                buf.at(k, height-i) = rayDirectionColor;
-            }
-        }
-    }
-
-	simplePPM_write_ppm("test.ppm", buf.getWidth(), buf.getHeight(), (unsigned char*)&buf.at(0,0));
-	return 0;
+    return Scene(camera, spheres, triangles);
 }
+
