@@ -53,6 +53,11 @@ class Sphere : public AbstractSurface{
                 return -1.0;
             }
         }
+        
+        Vector3 getNormal(Vector3 hitpoint){
+            Vector3 normVector = (this->centerPoint - hitpoint).normalize();
+            return normVector;
+        }
 
     private:
         float radius;

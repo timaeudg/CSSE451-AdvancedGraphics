@@ -3,6 +3,7 @@
 
 #include "Sphere.h"
 #include "Triangle.h"
+#include "Material.h"
 #include <vector>
 
 class Scene{
@@ -10,9 +11,10 @@ class Scene{
     public:
         Scene(){}
         
-        Scene(Camera cam, std::vector<AbstractSurface*> surfaces){
+        Scene(Camera cam, std::vector<AbstractSurface*> surfaces, std::vector<Material> mats){
             this->cam = cam;
             this->surfaces = surfaces;
+            this->materials = mats;
         }
         
         Camera* getCamera(){
@@ -28,6 +30,7 @@ class Scene{
     private:
         Camera cam;
         std::vector<AbstractSurface*> surfaces;
+        std::vector<Material> materials;
 };
 
 #endif

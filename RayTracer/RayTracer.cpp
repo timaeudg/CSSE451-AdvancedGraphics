@@ -12,6 +12,7 @@
 #include "Triangle.h"
 #include "Hitpoint.h"
 #include "Scene.h"
+#include "Material.h"
 
 template<typename shape>
 Hitpoint* genericGetHitpoint(std::vector<shape>* shapes, Ray* newRay);
@@ -58,9 +59,11 @@ int main(int argc, char ** argv)
             Color rayDirectionColor = Color(rCast, gCast, bCast);
             Hitpoint* hit = getPriorityHitpoint(&scene, &newRay);
             if(hit != NULL){
-                buf.at(k, height-i) = Color(0, 0, 0);
-            } else {
-                buf.at(k, height-i) = rayDirectionColor;
+                Vector3 norm = hit->getNormal()*255.0f;
+                Color n = Color((int)abs(norm[0]), (int)abs(norm[1]), (int)abs(norm[2]));
+                buf.at(k, height-i) = n;
+            } else{
+                buf.at(k, height-i) = Color((int)abs(rayDirec[0]*255.0f), (int)abs(rayDirec[1]*255.0f), (int)abs(rayDirec[2]*255.0f));
             }
         }
     }
@@ -108,7 +111,7 @@ Hitpoint* genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay){
     }
     Hitpoint hit;
     if(index>=0){
-        hit = Hitpoint(*newRay, smallestIntersected);
+        hit = Hitpoint(*newRay, smallestIntersected, (*shapes)[index]);
         return &hit;
     } 
     return NULL;
@@ -127,7 +130,7 @@ Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray){
 
 Scene loadScene(objLoader* objData){
     Camera camera;
-    
+    std::vector<Material> materials = std::vector<Material>();
     std::vector<AbstractSurface*> surfaces = std::vector<AbstractSurface*>();
     
 	if((*objData).camera != NULL)
@@ -162,7 +165,6 @@ Scene loadScene(objLoader* objData){
 		printf("%f %f %f\n", xUp, yUp, zUp);
 	}
 
-    std::vector<Sphere> spheres = std::vector<Sphere>();
     if((*objData).sphereCount > 0 && (*objData).sphereList != NULL){
         for(int i = 0; i < (*objData).sphereCount; i++){
             float sphereX =  (*objData).vertexList[ (*objData).sphereList[i]->pos_index ]->e[0];
@@ -183,7 +185,6 @@ Scene loadScene(objLoader* objData){
             surfaces.push_back(sphere);
         }
     }
-    std::vector<Triangle> triangles = std::vector<Triangle>();
     if((*objData).faceCount > 0 && (*objData).faceList != NULL){
         for(int i = 0; i < (*objData).faceCount; i++){
             float p1X = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[0] ]->e[0];
@@ -206,6 +207,30 @@ Scene loadScene(objLoader* objData){
             surfaces.push_back(tri);
         }
     }
-    return Scene(camera, surfaces);
+    
+    if((*objData).materialCount > 0 && (*objData).materialList != NULL){
+        for(int j = 0; j < (*objData).materialCount; j++){
+            float ambR = (*objData).materialList[ j ]->amb[0];
+            float ambG = (*objData).materialList[ j ]->amb[1];
+            float ambB = (*objData).materialList[ j ]->amb[2];
+            
+            float diffR = (*objData).materialList[ j ]->diff[0];
+            float diffG = (*objData).materialList[ j ]->diff[1];
+            float diffB = (*objData).materialList[ j ]->diff[2];
+            
+            float specR = (*objData).materialList[ j ]->spec[0];
+            float specG = (*objData).materialList[ j ]->spec[1];
+            float specB = (*objData).materialList[ j ]->spec[2];
+            
+            Color ambColor = Color((int)abs(ambR*255), (int)abs(ambG*255), (int)abs(ambB*255));
+            Color diffColor = Color((int)abs(diffR*255), (int)abs(diffG*255), (int)abs(diffB*255));
+            Color specColor = Color((int)abs(specR*255), (int)abs(specG*255), (int)abs(specB*255));
+            
+            Material mat = Material(ambColor, diffColor, specColor);
+            materials.push_back(mat);
+        }
+    }
+    
+    return Scene(camera, surfaces, materials);
 }
 

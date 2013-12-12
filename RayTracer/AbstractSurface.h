@@ -11,6 +11,8 @@ class AbstractSurface{
 
         virtual float checkIntersection(Ray ray){
         }
+        
+        virtual Vector3 getNormal(Vector3 hitpoint){}
 
     private:
 };

@@ -28,6 +28,11 @@ class Triangle : public AbstractSurface{
             }
         
         }
+        
+        Vector3 getNormal(Vector3 hitpoint){
+            printf("triangle normal: %f, %f, %f\n", this->normal[0], this->normal[1], this->normal[2]);
+            return this->normal;
+        }
 
     private:
         Vector3 p1;
