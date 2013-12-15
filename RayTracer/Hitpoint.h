@@ -27,9 +27,27 @@ class Hitpoint{
         Vector3 getHitpoint(){
             return this->ray.getOrigin() + this->parameterVal*this->ray.getDirection();
         }
+
+        AbstractSurface* getSurface(){
+            return this->hitSurface;
+        }
         
         Vector3 getNormal(){
-            return this->hitSurface->getNormal(getHitpoint());
+            return getSurface()->getNormal(getHitpoint());
+            /*
+            printf("getting hitloc\n");
+            Vector3 hitLocation = getHitpoint();
+
+            printf("getting p1\n");
+            this->hitSurface->getP1();
+
+            printf("getting normal\n");
+            if(this->hitSurface ==NULL){
+                printf("Why is hitsurface null???\n");
+            }
+            Vector3 normal = (this->hitSurface)->getNormal(hitLocation);
+            return normal;
+            */
         }
         
     private:

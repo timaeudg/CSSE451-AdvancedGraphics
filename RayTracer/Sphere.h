@@ -26,14 +26,16 @@ class Sphere : public AbstractSurface{
         }
 
         float checkIntersection(Ray ray){
-            float A = ray.getDirection().dot(ray.getDirection());
-            float B = 2*ray.getDirection().dot((ray.getOrigin() - centerPoint));
-            float C = (ray.getOrigin() - centerPoint).dot((ray.getOrigin() - centerPoint)) - (radius*radius);
+            Vector3 d = ray.getDirection();
+            Vector3 e = ray.getOrigin();
+            Vector3 c = this->centerPoint;
+            float A = d.dot(d);
+            float B = 2*d.dot(e-c);
+            float C = (e-c).dot(e-c) - this->radius*this->radius;
 
             float rootPart = B*B - 4*A*C;
 
             if(rootPart >= 0){
-                //Do more stuff because we probably want the hitpoint, but for now, just return true
                 float topPartPlus = -B+rootPart;
                 float topPartMinus = -B-rootPart;
                 
@@ -41,14 +43,22 @@ class Sphere : public AbstractSurface{
                 float tMinus = topPartMinus / 2*A;
                 
                 float tFinal = 0.0;
-                
-                if(tPlus < tMinus){
+                bool finalSet = false;
+                if(tPlus < tMinus && tPlus>=0){
                     tFinal = tPlus;
+                    finalSet = true;
                 } else{
-                    tFinal = tMinus;
+                    if(tMinus >=0){
+                        tFinal = tMinus;
+                        finalSet = true;
+                    }
                 }
-                
-                return tFinal;
+                printf("intersection, radius: %f,%f\n", tFinal, this->radius); 
+                if(finalSet){
+                    return tFinal;
+                } else {
+                    return -1.0;
+                }
             } else {
                 return -1.0;
             }

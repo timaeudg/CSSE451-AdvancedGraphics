@@ -13,12 +13,11 @@
 #include "Hitpoint.h"
 #include "Scene.h"
 #include "Material.h"
+#include <cfloat>
 
 template<typename shape>
-Hitpoint* genericGetHitpoint(std::vector<shape>* shapes, Ray* newRay);
-template<typename shape>
-Hitpoint* genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay);
-Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray);
+bool genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay, float* param, int* index);
+//Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray);
 Scene loadScene(objLoader* objData);
 
 int main(int argc, char ** argv)
@@ -46,7 +45,7 @@ int main(int argc, char ** argv)
     RayGenerator rayGen = RayGenerator(scene.getCamera(), width, height, 90.0);
     for(int i = 0; i<width; i++){
         for(int k = height-1; k>=0; k--){
-            Ray newRay = rayGen.getRay(k, i);
+            Ray newRay = rayGen.getRay(i, k);
             Vector3 rayDirec = newRay.getDirection();
             
             float r = abs(rayDirec[0]*255);
@@ -56,14 +55,23 @@ int main(int argc, char ** argv)
             int gCast = (int)g;
             int bCast = (int)b;
             
+            float paramVal = -1.0;
+            int index = -1;
             Color rayDirectionColor = Color(rCast, gCast, bCast);
-            Hitpoint* hit = getPriorityHitpoint(&scene, &newRay);
-            if(hit != NULL){
-                Vector3 norm = hit->getNormal()*255.0f;
-                Color n = Color((int)abs(norm[0]), (int)abs(norm[1]), (int)abs(norm[2]));
-                buf.at(k, height-i) = n;
+            bool hit = genericGetHitpoint(scene.getSurfaces(), &newRay, &paramVal, &index);
+            if(hit){
+                Vector3 hitLoc = newRay.pointAtParameterValue(paramVal);
+                Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
+                Vector3 norm = hit.getSurface()->getNormal(hit.getHitpoint());
+                //Vector3 norm = hit->getNormal();
+                norm = norm*255.0f;
+                //printf("multied color: %i,%i,%i\n", abs((int)norm[0]), abs((int)norm[1]), abs((int)norm[2]));
+                Color n = Color(abs((int)norm[0]), abs((int)norm[1]), abs((int)norm[2]));
+                //printf("about to colorize: %f,%f,%f\n", n[0], n[1], n[2]);
+                buf.at(i, height-k) = n;
             } else{
-                buf.at(k, height-i) = Color((int)abs(rayDirec[0]*255.0f), (int)abs(rayDirec[1]*255.0f), (int)abs(rayDirec[2]*255.0f));
+                //buf.at(i, height-k) = Color((int)abs(rayDirec[0]*255.0f), (int)abs(rayDirec[1]*255.0f), (int)abs(rayDirec[2]*255.0f));
+                buf.at(i, height-k) = Color(0, 0, 0);
             }
         }
     }
@@ -73,61 +81,40 @@ int main(int argc, char ** argv)
 }
 
 template<typename shape>
-Hitpoint* genericGetHitpoint(std::vector<shape>* shapes, Ray* newRay){
-    float smallestIntersected = -1.0;
-    int index = -1;
-    for(int j = 0; j<(*shapes).size(); j++){
-        shape current = (*shapes)[j];
-        float intersected = current.checkIntersection(*newRay);
-        if(intersected>=0){
-            if(intersected < smallestIntersected || smallestIntersected == -1.0){
-                smallestIntersected = intersected;
-                index = j;
-            }
-        }
-    }
-    Hitpoint hit;
-    if(index>=0){
-        hit = Hitpoint(*newRay, smallestIntersected);
-        return &hit;
-    } 
-    return NULL;
-
-}
-
-template<typename shape>
-Hitpoint* genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay){
-    float smallestIntersected = -1.0;
+bool genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay, float* intersected, int* shapeIndex){
+    float smallestIntersected = FLT_MAX;
     int index = -1;
     for(int j = 0; j<(*shapes).size(); j++){
         shape* current = (*shapes)[j];
         float intersected = current->checkIntersection(*newRay);
         if(intersected>=0){
-            if(intersected < smallestIntersected || smallestIntersected == -1.0){
+            printf("intersected after return: %f\n", intersected);
+            if(intersected < smallestIntersected){
+                printf("replaced\n");
                 smallestIntersected = intersected;
                 index = j;
             }
         }
     }
-    Hitpoint hit;
     if(index>=0){
-        hit = Hitpoint(*newRay, smallestIntersected, (*shapes)[index]);
-        return &hit;
+        *intersected = smallestIntersected;
+        *shapeIndex = index;
+        return true;
     } 
-    return NULL;
+    return false;
 
 }
-
+/*
 Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray){
     Hitpoint* hitpoint = genericGetHitpoint((*scene).getSurfaces(), ray);
-    
+//    printf("hitpoint norm check: %f,%f,%f\n", hitpoint->getNormal()[0], hitpoint->getNormal()[1], hitpoint->getNormal()[2]); 
     if(hitpoint != NULL){
         return hitpoint;
     } else {
         return NULL;
     }
 }
-
+*/
 Scene loadScene(objLoader* objData){
     Camera camera;
     std::vector<Material> materials = std::vector<Material>();

@@ -19,7 +19,10 @@ class Triangle : public AbstractSurface{
             Vector3 v1 = p2 - p1;
             Vector3 v2 = p3 - p2;
 
-            this->normal = v1.cross(v2);
+            Vector3 nor = v1.cross(v2);
+            nor.normalize();
+            printf("Triangle norm: %f,%f,%f\n", nor[0], nor[1], nor[2]);
+            this->normal = nor;
         }
 
         float checkIntersection(Ray ray){
@@ -28,9 +31,17 @@ class Triangle : public AbstractSurface{
             }
         
         }
+
+        Vector3 getP1(){
+            return this->p1;
+        }
         
         Vector3 getNormal(Vector3 hitpoint){
-            printf("triangle normal: %f, %f, %f\n", this->normal[0], this->normal[1], this->normal[2]);
+            
+            printf("triangle p1: %f, %f, %f\n", p1[0], p1[1], p1[2]);
+            printf("triangle p2: %f, %f, %f\n", p2[0], p2[1], p2[2]);
+            printf("triangle p3: %f, %f, %f\n", p3[0], p3[1], p3[2]);
+            
             return this->normal;
         }
 
