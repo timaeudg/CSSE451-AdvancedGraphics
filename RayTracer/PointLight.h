@@ -11,6 +11,14 @@ class PointLight : public Light{
             this->materialIndex = materialIndex;
         }
 
+        Vector3 getPos(){
+            return this->position;
+        }
+
+        int getMaterialIndex(){
+            return this->materialIndex;
+        }
+
     private:
         Vector3 position;
         int materialIndex;

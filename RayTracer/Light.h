@@ -9,5 +9,7 @@ class Light{
 
         virtual Vector3 getPos(){}
 
+        virtual int getMaterialIndex(){}
+
 };
 #endif

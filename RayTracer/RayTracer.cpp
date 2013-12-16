@@ -16,6 +16,7 @@
 #include "Light.h"
 #include "PointLight.h"
 #include <cfloat>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -74,25 +75,45 @@ int main(int argc, char ** argv)
 
             bool hit = genericGetHitpoint(scene.getSurfaces(), &newRay, &paramVal, &index);
             if(hit){
-                Vector3 hitLoc = newRay.pointAtParameterValue(paramVal);
-
                 Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
-
+                Vector3 hitLoc = newRay.pointAtParameterValue(paramVal);
+                Vector3 norm = hit.getNormal();
+                
                 Material mat = scene.getMaterial(hit.getSurface()->getMaterialIndex());
+
+                Vector3 diff = mat.getDiffColor();
+                Vector3 spec = mat.getSpecColor();
+                Vector3 amb = mat.getAmbColor();
+
+                Color n = Color(0,0,0);
 
                 /*
                 Vector3 norm = hit.getNormal();
                 norm = norm*255.0f;
                 Color n = Color(abs((int)norm[0]), abs((int)norm[1]), abs((int)norm[2]));
                 */
+                for(int k = 0; k < scene.getLights().size(); k++){
+                    Light light = *(scene.getLights()[k]);
+                    
+                    Vector3 lightDir = light.getPos() - hitLoc;
 
+                    Material lightMat = scene.getMaterial(light.getMaterialIndex());
 
-                Vector3 diff = mat.getDiffColor();
-                Vector3 spec = mat.getSpecColor();
-                Vector3 amb = mat.getAmbColor();
-                amb = amb*255.0f;
-                Color n = Color(abs((int)amb[0]), abs((int)amb[1]), abs((int)amb[2]));
+                    Vector3 lightAmbient = lightMat.getAmbColor();
+                    Vector3 lightDiffuse = lightMat.getDiffColor();
+                    Vector3 lightSpec = lightMat.getSpecColor();
+
+                    Vector3 lr = 2*(lightDir.dot(norm))*norm - lightDir;
+                    Vector3 viewToCamera = scene.getCamera()->getPos() - hitLoc;
+
+                    Vector3 ambientColor = lightAmbient * amb;
+                    Vector3 diffColor = norm.dot(lightDir) * diff * lightDiffuse;
+                    Vector3 specColor = lightSpec * spec * pow((viewToCamera.dot(lr)), 100.0);
+                    
+                    Vector3 combinedColor = ambientColor + diffColor + specColor;
+                    n = Color(abs((int)combinedColor[0]), abs((int)combinedColor[1]), abs((int)combinedColor[2]));
                 
+                }
                 buf.at(i, k) = n;
             } else{
                 buf.at(i, k) = Color(0,0,0);
