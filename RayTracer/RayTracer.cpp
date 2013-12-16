@@ -13,7 +13,11 @@
 #include "Hitpoint.h"
 #include "Scene.h"
 #include "Material.h"
+#include "Light.h"
+#include "PointLight.h"
 #include <cfloat>
+#include <stdio.h>
+#include <stdlib.h>
 
 template<typename shape>
 bool genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay, float* param, int* index);
@@ -22,21 +26,29 @@ Scene loadScene(objLoader* objData);
 
 int main(int argc, char ** argv)
 {
-	//buffer
-    int width =  800;
-    int height = 800;
-	Buffer buf = Buffer(width, height);
+    //buffer
+    int width =  1920;
+    int height = 1080;
 
-	//need at least one argument (obj file)
-	if(argc < 2)
-	{
-		printf("Usage %s filename.obj\n", argv[0]);
-		exit(0);
-	}
+    //need at least one argument (obj file)
+    if(argc < 2)
+    {
+        printf("Usage %s filename.obj\n", argv[0]);
+        exit(0);
+    }
 
-	//load camera data
-	objLoader objData = objLoader();
-	objData.load(argv[1]);
+    if(argc >= 3){
+        width = atoi(argv[2]);
+        if(argc == 4){
+            height = atoi(argv[3]);
+        }
+    }
+
+    Buffer buf = Buffer(width, height);
+    
+    //load camera data
+    objLoader objData = objLoader();
+    objData.load(argv[1]);
     
     Scene scene = loadScene(&objData);
     printf("Scene loaded correctly\n");
@@ -44,7 +56,7 @@ int main(int argc, char ** argv)
     printf("Before Ray generation\n");
     RayGenerator rayGen = RayGenerator(scene.getCamera(), width, height, 90.0);
     for(int i = 0; i<width; i++){
-        for(int k = 1; k<=height; k++){
+        for(int k = 0; k<height; k++){
             Ray newRay = rayGen.getRay(i, height-1-k);
             Vector3 rayDirec = newRay.getDirection();
             
@@ -55,24 +67,32 @@ int main(int argc, char ** argv)
             int gCast = (int)g;
             int bCast = (int)b;
             
-            //printf("K = %i\n", k);
-            //printf("h-k = %i\n", height-k);
 
             float paramVal = -1.0;
             int index = -1;
             Color rayDirectionColor = Color(rCast, gCast, bCast);
-           
+
             bool hit = genericGetHitpoint(scene.getSurfaces(), &newRay, &paramVal, &index);
             if(hit){
-                //printf("x,y: %i,%i\n", i, k);
-                //printf("paramValue: %f\n", paramVal);
                 Vector3 hitLoc = newRay.pointAtParameterValue(paramVal);
-                //printf("hitLoc: %f,%f,%f\n", hitLoc[0], hitLoc[1], hitLoc[2]);
+
                 Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
+
+                Material mat = scene.getMaterial(hit.getSurface()->getMaterialIndex());
+
+                /*
                 Vector3 norm = hit.getNormal();
                 norm = norm*255.0f;
                 Color n = Color(abs((int)norm[0]), abs((int)norm[1]), abs((int)norm[2]));
-                //printf("Color: %i,%i,%i\n", n[0],n[1],n[2]);
+                */
+
+
+                Vector3 diff = mat.getDiffColor();
+                Vector3 spec = mat.getSpecColor();
+                Vector3 amb = mat.getAmbColor();
+                amb = amb*255.0f;
+                Color n = Color(abs((int)amb[0]), abs((int)amb[1]), abs((int)amb[2]));
+                
                 buf.at(i, k) = n;
             } else{
                 buf.at(i, k) = Color(0,0,0);
@@ -80,8 +100,8 @@ int main(int argc, char ** argv)
         }
     }
     printf("Writing file\n");
-	simplePPM_write_ppm("test.ppm", buf.getWidth(), buf.getHeight(), (unsigned char*)&buf.at(0,0));
-	return 0;
+    simplePPM_write_ppm("test.ppm", buf.getWidth(), buf.getHeight(), (unsigned char*)&buf.at(0,0));
+    return 0;
 }
 
 template<typename shape>
@@ -121,38 +141,62 @@ Scene loadScene(objLoader* objData){
     Camera camera;
     std::vector<Material> materials = std::vector<Material>();
     std::vector<AbstractSurface*> surfaces = std::vector<AbstractSurface*>();
+    std::vector<Light*> lights = std::vector<Light*>();
     
-	if((*objData).camera != NULL)
-	{
+    if((*objData).camera != NULL)
+    {
         float x = (*objData).vertexList[ (*objData).camera->camera_pos_index ]->e[0];
         float y = (*objData).vertexList[ (*objData).camera->camera_pos_index ]->e[1];
         float z = (*objData).vertexList[ (*objData).camera->camera_pos_index ]->e[2];
-        
+
         Vector3 camPos = Vector3(x, y, z);
 
         float xLook = (*objData).vertexList[ (*objData).camera->camera_look_point_index ]->e[0];
-		float yLook = (*objData).vertexList[ (*objData).camera->camera_look_point_index ]->e[1];
-		float zLook = (*objData).vertexList[ (*objData).camera->camera_look_point_index ]->e[2];
+        float yLook = (*objData).vertexList[ (*objData).camera->camera_look_point_index ]->e[1];
+        float zLook = (*objData).vertexList[ (*objData).camera->camera_look_point_index ]->e[2];
 
         Vector3 lookAt = Vector3(xLook, yLook, zLook);
 
-		float xUp =	(*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[0];
-		float yUp =	(*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[1];
-		float zUp = (*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[2];
-	
+        float xUp =	(*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[0];
+        float yUp =	(*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[1];
+        float zUp = (*objData).normalList[ (*objData).camera->camera_up_norm_index ]->e[2];
+
         Vector3 up = Vector3(xUp, yUp, zUp);
         up.normalize();
 
         camera = Camera(&camPos, &lookAt, &up);
 
-		printf("Found a camera\n");
-		printf(" position: ");
-		printf("%f %f %f\n", x, y, z);
-		printf(" looking at: ");
-		printf("%f %f %f\n", lookAt[0], lookAt[1], lookAt[2]);
-		printf(" up normal: ");
-		printf("%f %f %f\n", xUp, yUp, zUp);
-	}
+        printf("Found a camera\n");
+        printf(" position: ");
+        printf("%f %f %f\n", x, y, z);
+        printf(" looking at: ");
+        printf("%f %f %f\n", lookAt[0], lookAt[1], lookAt[2]);
+        printf(" up normal: ");
+        printf("%f %f %f\n", xUp, yUp, zUp);
+    }
+
+    if((*objData).materialCount > 0 && (*objData).materialList != NULL){
+        for(int j = 0; j < (*objData).materialCount; j++){
+            float ambR = (*objData).materialList[ j ]->amb[0];
+            float ambG = (*objData).materialList[ j ]->amb[1];
+            float ambB = (*objData).materialList[ j ]->amb[2];
+            
+            float diffR = (*objData).materialList[ j ]->diff[0];
+            float diffG = (*objData).materialList[ j ]->diff[1];
+            float diffB = (*objData).materialList[ j ]->diff[2];
+            
+            float specR = (*objData).materialList[ j ]->spec[0];
+            float specG = (*objData).materialList[ j ]->spec[1];
+            float specB = (*objData).materialList[ j ]->spec[2];
+            
+            Vector3 ambColor  = Vector3( ambR,  ambG,  ambB);
+            Vector3 diffColor = Vector3(diffR, diffG, diffB);
+            Vector3 specColor = Vector3(specR, specG, specB);
+            
+            Material mat = Material(ambColor, diffColor, specColor);
+            materials.push_back(mat);
+        }
+    }
 
     if((*objData).sphereCount > 0 && (*objData).sphereList != NULL){
         for(int i = 0; i < (*objData).sphereCount; i++){
@@ -166,14 +210,34 @@ Scene loadScene(objLoader* objData){
             float yUp = (*objData).normalList [ (*objData).sphereList[i]->up_normal_index ]->e[1];
             float zUp = (*objData).normalList [ (*objData).sphereList[i]->up_normal_index ]->e[2];
 
+            /*
+            float ambR = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->amb[0];
+            float ambG = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->amb[1];
+            float ambB = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->amb[2];
+            
+            float diffR = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->diff[0];
+            float diffG = (*objData).materialList[ (*objData).sphereList[i]->materialIndex]->diff[1];
+            float diffB = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->diff[2];
+            
+            float specR = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->spec[0];
+            float specG = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->spec[1];
+            float specB = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->spec[2];
+            
+            Color ambColor = Color((int)abs(ambR*255), (int)abs(ambG*255), (int)abs(ambB*255));
+            Color diffColor = Color((int)abs(diffR*255), (int)abs(diffG*255), (int)abs(diffB*255));
+            Color specColor = Color((int)abs(specR*255), (int)abs(specG*255), (int)abs(specB*255));
+            */
+
             Vector3 sphereUp = Vector3(xUp, yUp, zUp);
 
             float radius = sphereUp.length();
+            int materialIndex = (*objData).sphereList[i]->material_index;
 
-            Sphere* sphere = new Sphere(spherePos, radius);
+            Sphere* sphere = new Sphere(spherePos, radius, materialIndex);
             surfaces.push_back(sphere);
         }
     }
+
     if((*objData).faceCount > 0 && (*objData).faceList != NULL){
         for(int i = 0; i < (*objData).faceCount; i++){
             float p1X = (*objData).vertexList[ (*objData).faceList[i]->vertex_index[0] ]->e[0];
@@ -192,34 +256,28 @@ Scene loadScene(objLoader* objData){
             Vector3 p2 = Vector3(p2X, p2Y, p2Z);
             Vector3 p3 = Vector3(p3X, p3Y, p3Z);
 
-            Triangle* tri = new Triangle(p1, p2, p3);
+            int materialIndex = (*objData).faceList[i]->material_index;
+
+            Triangle* tri = new Triangle(p1, p2, p3, materialIndex);
             surfaces.push_back(tri);
         }
     }
-    
-    if((*objData).materialCount > 0 && (*objData).materialList != NULL){
-        for(int j = 0; j < (*objData).materialCount; j++){
-            float ambR = (*objData).materialList[ j ]->amb[0];
-            float ambG = (*objData).materialList[ j ]->amb[1];
-            float ambB = (*objData).materialList[ j ]->amb[2];
-            
-            float diffR = (*objData).materialList[ j ]->diff[0];
-            float diffG = (*objData).materialList[ j ]->diff[1];
-            float diffB = (*objData).materialList[ j ]->diff[2];
-            
-            float specR = (*objData).materialList[ j ]->spec[0];
-            float specG = (*objData).materialList[ j ]->spec[1];
-            float specB = (*objData).materialList[ j ]->spec[2];
-            
-            Color ambColor = Color((int)abs(ambR*255), (int)abs(ambG*255), (int)abs(ambB*255));
-            Color diffColor = Color((int)abs(diffR*255), (int)abs(diffG*255), (int)abs(diffB*255));
-            Color specColor = Color((int)abs(specR*255), (int)abs(specG*255), (int)abs(specB*255));
-            
-            Material mat = Material(ambColor, diffColor, specColor);
-            materials.push_back(mat);
+
+    if((*objData).lightPointCount > 0 && (*objData).lightPointList != NULL){
+        for(int i = 0; i < (*objData).lightPointCount; i++){
+           float posX = (*objData).vertexList[ (*objData).lightPointList[i]->pos_index ]->e[0]; 
+           float posY = (*objData).vertexList[ (*objData).lightPointList[i]->pos_index ]->e[1]; 
+           float posZ = (*objData).vertexList[ (*objData).lightPointList[i]->pos_index ]->e[2]; 
+
+           int materialIndex = (*objData).lightPointList[i]->material_index;
+
+           Vector3 pos = Vector3(posX, posY, posZ);
+
+           PointLight* light = new PointLight(pos, materialIndex);
+           lights.push_back(light);
         }
     }
     
-    return Scene(camera, surfaces, materials);
+    return Scene(camera, surfaces, materials, lights);
 }
 

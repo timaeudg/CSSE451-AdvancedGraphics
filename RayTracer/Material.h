@@ -10,16 +10,28 @@ class Material {
         Material(){}
         ~Material(){}
         
-        Material(Color amb, Color diff, Color spec){
+        Material(Vector3 amb, Vector3 diff, Vector3 spec){
             this->ambColor = amb;
             this->diffColor = diff;
             this->specColor = spec;
         }
+
+        Vector3 getAmbColor(){
+            return this->ambColor;
+        }
+
+        Vector3 getDiffColor(){
+            return this->diffColor;
+        }
+
+        Vector3 getSpecColor(){
+            return this->specColor;
+        }
         
     private:
-        Color ambColor;
-        Color diffColor;
-        Color specColor;
+        Vector3 ambColor;
+        Vector3 diffColor;
+        Vector3 specColor;
 };
 
 #endif

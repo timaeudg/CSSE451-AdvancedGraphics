@@ -11,7 +11,7 @@ class Triangle : public AbstractSurface{
 
         ~Triangle(){}
 
-        Triangle(Vector3 p1, Vector3 p2, Vector3 p3){
+        Triangle(Vector3 p1, Vector3 p2, Vector3 p3, int material){
             this->p1 = p1;
             this->p2 = p2;
             this->p3 = p3;
@@ -23,6 +23,7 @@ class Triangle : public AbstractSurface{
             nor.normalize();
             printf("Triangle norm: %f,%f,%f\n", nor[0], nor[1], nor[2]);
             this->normal = nor;
+            this->materialIndex = material;
         }
 
         float checkIntersection(Ray ray){
@@ -32,10 +33,10 @@ class Triangle : public AbstractSurface{
         
         }
 
-        Vector3 getP1(){
-            return this->p1;
+        int getMaterialIndex(){
+            return this->materialIndex;
         }
-        
+
         Vector3 getNormal(Vector3 hitpoint){
             
             printf("triangle p1: %f, %f, %f\n", p1[0], p1[1], p1[2]);
@@ -51,6 +52,8 @@ class Triangle : public AbstractSurface{
         Vector3 p3;
 
         Vector3 normal;
+
+        int materialIndex;
 
         bool checkRayHittingPlane(Ray ray){
             Vector3 a = this->p1;

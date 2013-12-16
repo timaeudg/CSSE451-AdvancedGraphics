@@ -14,7 +14,7 @@ class AbstractSurface{
         
         virtual Vector3 getNormal(Vector3 hitpoint){}
 
-        virtual Vector3 getP1(){}
+        virtual int getMaterialIndex(){}
 
     private:
 };

@@ -13,9 +13,10 @@ class Sphere : public AbstractSurface{
 
         ~Sphere(){}
 
-        Sphere(Vector3 pos, float radius){
+        Sphere(Vector3 pos, float radius, int materialIndex){
             setRadius(radius);
             setCenterPoint(pos);
+            this->materialIndex = materialIndex;
         }
 
         void setRadius(float radius){
@@ -68,8 +69,13 @@ class Sphere : public AbstractSurface{
             return normVector;
         }
 
+        int getMaterialIndex(){
+            return this->materialIndex;
+        }
+
     private:
         float radius;
         Vector3 centerPoint;
+        int materialIndex;
 };
 #endif
