@@ -44,8 +44,8 @@ int main(int argc, char ** argv)
     printf("Before Ray generation\n");
     RayGenerator rayGen = RayGenerator(scene.getCamera(), width, height, 90.0);
     for(int i = 0; i<width; i++){
-        for(int k = height-1; k>=0; k--){
-            Ray newRay = rayGen.getRay(i, k);
+        for(int k = 1; k<=height; k++){
+            Ray newRay = rayGen.getRay(i, height-1-k);
             Vector3 rayDirec = newRay.getDirection();
             
             float r = abs(rayDirec[0]*255);
@@ -55,23 +55,27 @@ int main(int argc, char ** argv)
             int gCast = (int)g;
             int bCast = (int)b;
             
+            //printf("K = %i\n", k);
+            //printf("h-k = %i\n", height-k);
+
             float paramVal = -1.0;
             int index = -1;
             Color rayDirectionColor = Color(rCast, gCast, bCast);
+           
             bool hit = genericGetHitpoint(scene.getSurfaces(), &newRay, &paramVal, &index);
             if(hit){
+                //printf("x,y: %i,%i\n", i, k);
+                //printf("paramValue: %f\n", paramVal);
                 Vector3 hitLoc = newRay.pointAtParameterValue(paramVal);
+                //printf("hitLoc: %f,%f,%f\n", hitLoc[0], hitLoc[1], hitLoc[2]);
                 Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
-                Vector3 norm = hit.getSurface()->getNormal(hit.getHitpoint());
-                //Vector3 norm = hit->getNormal();
+                Vector3 norm = hit.getNormal();
                 norm = norm*255.0f;
-                //printf("multied color: %i,%i,%i\n", abs((int)norm[0]), abs((int)norm[1]), abs((int)norm[2]));
                 Color n = Color(abs((int)norm[0]), abs((int)norm[1]), abs((int)norm[2]));
-                //printf("about to colorize: %f,%f,%f\n", n[0], n[1], n[2]);
-                buf.at(i, height-k) = n;
+                //printf("Color: %i,%i,%i\n", n[0],n[1],n[2]);
+                buf.at(i, k) = n;
             } else{
-                //buf.at(i, height-k) = Color((int)abs(rayDirec[0]*255.0f), (int)abs(rayDirec[1]*255.0f), (int)abs(rayDirec[2]*255.0f));
-                buf.at(i, height-k) = Color(0, 0, 0);
+                buf.at(i, k) = Color(0,0,0);
             }
         }
     }
@@ -84,13 +88,11 @@ template<typename shape>
 bool genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay, float* intersected, int* shapeIndex){
     float smallestIntersected = FLT_MAX;
     int index = -1;
-    for(int j = 0; j<(*shapes).size(); j++){
+    for(int j = 0; j<shapes->size(); j++){
         shape* current = (*shapes)[j];
         float intersected = current->checkIntersection(*newRay);
         if(intersected>=0){
-            printf("intersected after return: %f\n", intersected);
             if(intersected < smallestIntersected){
-                printf("replaced\n");
                 smallestIntersected = intersected;
                 index = j;
             }
