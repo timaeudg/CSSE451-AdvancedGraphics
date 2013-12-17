@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal);
+Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, int reflectDepth);
 bool traceShadowRay(Scene &scene, Ray &ray);
 Scene loadScene(objLoader* objData);
 
@@ -66,9 +66,11 @@ int main(int argc, char ** argv)
             if(hit){
                 Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
                 
-                Color n = getColor(newRay, hit, scene, paramVal);
-                
-                buf.at(i, k) = n;
+                Color pixelColor;
+                Vector3 colorVector = getColor(newRay, hit, scene, paramVal, 5);
+                pixelColor = Color(abs((int)colorVector[0]), abs((int)colorVector[1]), abs((int)colorVector[2]));
+    
+                buf.at(i, k) = pixelColor;
             } else{
                 buf.at(i, k) = Color(0,0,0);
             }
@@ -79,33 +81,34 @@ int main(int argc, char ** argv)
     return 0;
 }
 
-Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal){
+Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, int reflectDepth){
+    //grab hitpoint info
     Vector3 hitLoc = ray.pointAtParameterValue(paramVal);
     Vector3 norm = hit.getNormal();
     
+    //grab material and material values
     Material mat = scene.getMaterial(hit.getSurface()->getMaterialIndex());
 
     Vector3 diff = mat.getDiffColor();
     Vector3 spec = mat.getSpecColor();
     Vector3 amb = mat.getAmbColor();
 
-    Color n = Color(0,0,0);
     Vector3 summedColor = Vector3(0,0,0);
     
     for(int k = 0; k < scene.getLights().size(); k++){
         Light* light = scene.getLights()[k];
         
+        //Light Vectors and resources
         Vector3 lightDir = (light->getPos() - hitLoc).normalize();
-
         Material lightMat = scene.getMaterial(light->getMaterialIndex());
-
+        Vector3 lr = (2*(lightDir.dot(norm))*norm - lightDir).normalize();
+        Vector3 viewToCamera = (scene.getCamera()->getPos() - hitLoc).normalize();
+ 
+        //Light shading values
         Vector3 lightAmbient = lightMat.getAmbColor();
         Vector3 lightDiffuse = lightMat.getDiffColor();
         Vector3 lightSpec = lightMat.getSpecColor();
-        
-        Vector3 lr = (2*(lightDir.dot(norm))*norm - lightDir).normalize();
-        Vector3 viewToCamera = (scene.getCamera()->getPos() - hitLoc).normalize();
-        
+         
         Vector3 ambientColor = (lightAmbient * amb);
         Vector3 diffColor = norm.dot(lightDir) * diff * lightDiffuse;
         /*
@@ -113,6 +116,8 @@ Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal){
         */
         Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), 10.0));
         
+
+        //Shadow code
         Ray shadowRay = Ray(hit.getHitpoint(0.99f), lightDir);
         
         bool inShadow = traceShadowRay(scene, shadowRay);
@@ -121,12 +126,29 @@ Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal){
         if(!inShadow){
             combinedColor = combinedColor+diffColor+specColor;
         }
-        
+
+        //Reflection code
+        Vector3 reflectColor = Vector3(0,0,0);
+        int hitpointIndex = -1;
+        float hitpointParam = -1.0;
+
+        /*
+         *How should I stop the recursion here? 
+         *I could just do straight depth, but is there another way based off of light intensity???
+         */
+        Ray reflectionRay = Ray(hit.getHitpoint(0.99f), lr);
+        bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointIndex);
+        if(hitSomething && reflectDepth > 0){
+            //printf("recursing\n");
+            Hitpoint reflectHit = Hitpoint(reflectionRay, hitpointParam, (*(scene.getSurfaces()))[hitpointIndex]);
+            reflectColor = getColor(reflectionRay, reflectHit, scene, hitpointParam, --reflectDepth);
+
+        }
+
         combinedColor = combinedColor*10.0f;
         summedColor = summedColor + combinedColor;
     }
-    n = Color(abs((int)summedColor[0]), abs((int)summedColor[1]), abs((int)summedColor[2]));
-    return n;
+    return summedColor;
 }
 
 bool traceShadowRay(Scene &scene, Ray &ray){
