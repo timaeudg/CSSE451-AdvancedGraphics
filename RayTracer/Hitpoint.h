@@ -24,8 +24,8 @@ class Hitpoint{
             return &this->ray;
         }
         
-        Vector3 getHitpoint(){
-            return this->ray.getOrigin() + this->parameterVal*this->ray.getDirection();
+        Vector3 getHitpoint(float offset=1.0){
+            return this->ray.getOrigin() + this->parameterVal*offset*this->ray.getDirection();
         }
 
         AbstractSurface* getSurface(){

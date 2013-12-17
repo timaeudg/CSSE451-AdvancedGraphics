@@ -21,6 +21,7 @@
 #include <stdlib.h>
 
 Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal);
+bool traceShadowRay(Scene &scene, Ray &ray);
 Scene loadScene(objLoader* objData);
 
 int main(int argc, char ** argv)
@@ -89,6 +90,7 @@ Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal){
     Vector3 amb = mat.getAmbColor();
 
     Color n = Color(0,0,0);
+    Vector3 summedColor = Vector3(0,0,0);
     
     for(int k = 0; k < scene.getLights().size(); k++){
         Light* light = scene.getLights()[k];
@@ -106,18 +108,35 @@ Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal){
         
         Vector3 ambientColor = (lightAmbient * amb);
         Vector3 diffColor = norm.dot(lightDir) * diff * lightDiffuse;
+        /*
+            The coefficent here comes from the material, need to load that
+        */
         Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), 10.0));
         
-        Ray shadowRay = Ray(hit.getHitpoint(), lightDir);
+        Ray shadowRay = Ray(hit.getHitpoint(0.99f), lightDir);
         
-        //bool inShadow = traceShadowRay(scene, shadowRay)
+        bool inShadow = traceShadowRay(scene, shadowRay);
+
+        Vector3 combinedColor = ambientColor;
+        if(!inShadow){
+            combinedColor = combinedColor+diffColor+specColor;
+        }
         
-        Vector3 combinedColor = ambientColor+diffColor+specColor;
-        combinedColor = combinedColor*20.0f;
-        
-        n = Color(abs((int)combinedColor[0]), abs((int)combinedColor[1]), abs((int)combinedColor[2]));
+        combinedColor = combinedColor*10.0f;
+        summedColor = summedColor + combinedColor;
     }
+    n = Color(abs((int)summedColor[0]), abs((int)summedColor[1]), abs((int)summedColor[2]));
     return n;
+}
+
+bool traceShadowRay(Scene &scene, Ray &ray){
+    float intersected = -1.0;
+    int index = -1;
+    bool hitSomething = scene.getHitpoint(&ray, &intersected, &index);
+    if(hitSomething){
+        return true;
+    }
+    return false;
 }
 
 Scene loadScene(objLoader* objData){
