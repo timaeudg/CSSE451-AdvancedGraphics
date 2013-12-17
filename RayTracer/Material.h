@@ -10,7 +10,7 @@ class Material {
         Material(){}
         ~Material(){}
         
-        Material(Vector3 amb, Vector3 diff, Vector3 spec){
+        Material(Vector3 amb, Vector3 diff, Vector3 spec, float exponent, float reflect){
             this->ambColor = amb;
             this->diffColor = diff;
             this->specColor = spec;
@@ -27,11 +27,21 @@ class Material {
         Vector3 getSpecColor(){
             return this->specColor;
         }
+
+        float getExponent(){
+            return this->exponent;
+        }
+
+        float getReflect(){
+            return this->reflect;
+        }
         
     private:
         Vector3 ambColor;
         Vector3 diffColor;
         Vector3 specColor;
+        float exponent;
+        float reflect;
 };
 
 #endif

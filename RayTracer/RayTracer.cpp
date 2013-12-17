@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, int reflectDepth);
+Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cumulativePercent);
 bool traceShadowRay(Scene &scene, Ray &ray);
 Scene loadScene(objLoader* objData);
 
@@ -66,8 +66,9 @@ int main(int argc, char ** argv)
             if(hit){
                 Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
                 
+                
                 Color pixelColor;
-                Vector3 colorVector = getColor(newRay, hit, scene, paramVal, 5);
+                Vector3 colorVector = getColor(newRay, hit, scene, paramVal, -1);
                 pixelColor = Color(abs((int)colorVector[0]), abs((int)colorVector[1]), abs((int)colorVector[2]));
     
                 buf.at(i, k) = pixelColor;
@@ -81,7 +82,7 @@ int main(int argc, char ** argv)
     return 0;
 }
 
-Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, int reflectDepth){
+Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cumulativePercent){
     //grab hitpoint info
     Vector3 hitLoc = ray.pointAtParameterValue(paramVal);
     Vector3 norm = hit.getNormal();
@@ -114,7 +115,8 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, int refl
         /*
             The coefficent here comes from the material, need to load that
         */
-        Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), 10.0));
+        //printf("mat exponent: %f\n", mat.getExponent());
+        Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), 100.0f));
         
 
         //Shadow code
@@ -127,27 +129,47 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, int refl
             combinedColor = combinedColor+diffColor+specColor;
         }
 
-        //Reflection code
-        Vector3 reflectColor = Vector3(0,0,0);
-        int hitpointIndex = -1;
-        float hitpointParam = -1.0;
+    }
 
+        //Reflection code
+    Vector3 reflectColor = Vector3(0,0,0);
+    int hitpointIndex = -1;
+    float hitpointParam = -1.0;
+
+    float reflectAmount = 0.5;
+ //       printf("reflectAmount: %f\n", reflectAmount); 
         /*
          *How should I stop the recursion here? 
          *I could just do straight depth, but is there another way based off of light intensity???
          */
         Ray reflectionRay = Ray(hit.getHitpoint(0.99f), lr);
         bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointIndex);
-        if(hitSomething && reflectDepth > 0){
+        
+        if(hitSomething && reflectAmount>0){
+//            printf("reflectAmount: %f\n", reflectAmount);
             //printf("recursing\n");
             Hitpoint reflectHit = Hitpoint(reflectionRay, hitpointParam, (*(scene.getSurfaces()))[hitpointIndex]);
-            reflectColor = getColor(reflectionRay, reflectHit, scene, hitpointParam, --reflectDepth);
+
+            float toPass = -1;
+            if(cumulativePercent==-1){
+                toPass = reflectAmount;
+            } else {
+                toPass = cumulativePercent*reflectAmount;
+            }
+            
+            if(toPass>= 0.10){
+                reflectColor = getColor(reflectionRay, reflectHit, scene, hitpointParam, toPass);
+            }
+
+            combinedColor = reflectAmount*reflectColor + (1-reflectAmount)*combinedColor;
 
         }
+        
 
         combinedColor = combinedColor*10.0f;
         summedColor = summedColor + combinedColor;
-    }
+
+
     return summedColor;
 }
 
@@ -212,14 +234,18 @@ Scene loadScene(objLoader* objData){
             float specR = (*objData).materialList[ j ]->spec[0];
             float specG = (*objData).materialList[ j ]->spec[1];
             float specB = (*objData).materialList[ j ]->spec[2];
+
+            float exponent =        (*objData).materialList[ j ]->shiny;
+            float reflection =      (*objData).materialList[ j ]->reflect;
             
             Vector3 ambColor  = Vector3( ambR,  ambG,  ambB);
             Vector3 diffColor = Vector3(diffR, diffG, diffB);
             Vector3 specColor = Vector3(specR, specG, specB);
             
             printf("Found a material, index will be %i\n", j);
+            printf("exponent,reflection: %f,%f\n", exponent, reflection);
             
-            Material mat = Material(ambColor, diffColor, specColor);
+            Material mat = Material(ambColor, diffColor, specColor, exponent, reflection);
             materials.push_back(mat);
         }
     }
@@ -235,24 +261,6 @@ Scene loadScene(objLoader* objData){
             float xUp = (*objData).normalList [ (*objData).sphereList[i]->up_normal_index ]->e[0];
             float yUp = (*objData).normalList [ (*objData).sphereList[i]->up_normal_index ]->e[1];
             float zUp = (*objData).normalList [ (*objData).sphereList[i]->up_normal_index ]->e[2];
-
-            /*
-            float ambR = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->amb[0];
-            float ambG = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->amb[1];
-            float ambB = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->amb[2];
-            
-            float diffR = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->diff[0];
-            float diffG = (*objData).materialList[ (*objData).sphereList[i]->materialIndex]->diff[1];
-            float diffB = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->diff[2];
-            
-            float specR = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->spec[0];
-            float specG = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->spec[1];
-            float specB = (*objData).materialList[ (*objData).sphereList[i]->materialIndex ]->spec[2];
-            
-            Color ambColor = Color((int)abs(ambR*255), (int)abs(ambG*255), (int)abs(ambB*255));
-            Color diffColor = Color((int)abs(diffR*255), (int)abs(diffG*255), (int)abs(diffB*255));
-            Color specColor = Color((int)abs(specR*255), (int)abs(specG*255), (int)abs(specB*255));
-            */
 
             Vector3 sphereUp = Vector3(xUp, yUp, zUp);
 
