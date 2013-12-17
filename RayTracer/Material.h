@@ -14,6 +14,8 @@ class Material {
             this->ambColor = amb;
             this->diffColor = diff;
             this->specColor = spec;
+            this->exponent = exponent;
+            this->reflect = reflect;
         }
 
         Vector3 getAmbColor(){

@@ -64,13 +64,15 @@ int main(int argc, char ** argv)
 
             bool hit = scene.getHitpoint(&newRay, &paramVal, &index);
             if(hit){
+                //printf("found a hit\n");
                 Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
-                
                 
                 Color pixelColor;
                 Vector3 colorVector = getColor(newRay, hit, scene, paramVal, -1);
+                colorVector = colorVector * 10.0f;
+                //printf("colorvector from getColor: %f,%f,%f\n", colorVector[0], colorVector[1], colorVector[2]);
                 pixelColor = Color(abs((int)colorVector[0]), abs((int)colorVector[1]), abs((int)colorVector[2]));
-    
+
                 buf.at(i, k) = pixelColor;
             } else{
                 buf.at(i, k) = Color(0,0,0);
@@ -85,6 +87,7 @@ int main(int argc, char ** argv)
 Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cumulativePercent){
     //grab hitpoint info
     Vector3 hitLoc = ray.pointAtParameterValue(paramVal);
+    Vector3 viewToCamera = (scene.getCamera()->getPos() - hitLoc).normalize();
     Vector3 norm = hit.getNormal();
     
     //grab material and material values
@@ -97,13 +100,13 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
     Vector3 summedColor = Vector3(0,0,0);
     
     for(int k = 0; k < scene.getLights().size(); k++){
+        //printf("doing light calcs\n");
         Light* light = scene.getLights()[k];
         
         //Light Vectors and resources
         Vector3 lightDir = (light->getPos() - hitLoc).normalize();
         Material lightMat = scene.getMaterial(light->getMaterialIndex());
         Vector3 lr = (2*(lightDir.dot(norm))*norm - lightDir).normalize();
-        Vector3 viewToCamera = (scene.getCamera()->getPos() - hitLoc).normalize();
  
         //Light shading values
         Vector3 lightAmbient = lightMat.getAmbColor();
@@ -116,8 +119,7 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
             The coefficent here comes from the material, need to load that
         */
         //printf("mat exponent: %f\n", mat.getExponent());
-        Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), 100.0f));
-        
+        Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), mat.getExponent()));
 
         //Shadow code
         Ray shadowRay = Ray(hit.getHitpoint(0.99f), lightDir);
@@ -128,47 +130,46 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
         if(!inShadow){
             combinedColor = combinedColor+diffColor+specColor;
         }
-
+        summedColor = summedColor + combinedColor;
     }
+    //printf("summedColor: %f,%f,%f\n", summedColor[0], summedColor[1], summedColor[2]);
 
-        //Reflection code
+    //Reflection code
     Vector3 reflectColor = Vector3(0,0,0);
     int hitpointIndex = -1;
     float hitpointParam = -1.0;
 
-    float reflectAmount = 0.5;
- //       printf("reflectAmount: %f\n", reflectAmount); 
-        /*
-         *How should I stop the recursion here? 
-         *I could just do straight depth, but is there another way based off of light intensity???
-         */
-        Ray reflectionRay = Ray(hit.getHitpoint(0.99f), lr);
-        bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointIndex);
-        
-        if(hitSomething && reflectAmount>0){
-//            printf("reflectAmount: %f\n", reflectAmount);
-            //printf("recursing\n");
-            Hitpoint reflectHit = Hitpoint(reflectionRay, hitpointParam, (*(scene.getSurfaces()))[hitpointIndex]);
+    float reflectAmount = mat.getReflect();
+    Vector3 viewReflection = (2*(viewToCamera.dot(norm))*norm - viewToCamera).normalize();
+    //printf("reflectAmount: %f\n", reflectAmount); 
+    /*
+     *How should I stop the recursion here? 
+     *I could just do straight depth, but is there another way based off of light intensity???
+     */
+    Ray reflectionRay = Ray(hit.getHitpoint(0.99f), viewReflection);
+    bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointIndex);
+    
+    if(hitSomething && reflectAmount>0){
+        Hitpoint reflectHit = Hitpoint(reflectionRay, hitpointParam, (*(scene.getSurfaces()))[hitpointIndex]);
 
-            float toPass = -1;
-            if(cumulativePercent==-1){
-                toPass = reflectAmount;
-            } else {
-                toPass = cumulativePercent*reflectAmount;
-            }
-            
-            if(toPass>= 0.10){
-                reflectColor = getColor(reflectionRay, reflectHit, scene, hitpointParam, toPass);
-            }
-
-            combinedColor = reflectAmount*reflectColor + (1-reflectAmount)*combinedColor;
-
+        float toPass = -1;
+        if(cumulativePercent==-1){
+            toPass = reflectAmount;
+        } else {
+            toPass = cumulativePercent*reflectAmount;
         }
         
+        if(toPass>= 0.10){
+            reflectColor = getColor(reflectionRay, reflectHit, scene, hitpointParam, toPass);
+        }
+        //printf("reflect color: %f,%f,%f\n", reflectColor[0], reflectColor[1], reflectColor[2]);
+        Vector3 reflectedPart = reflectAmount*reflectColor;
+        Vector3 absorbedPart = (1.0f - reflectAmount)*reflectColor;
+        //printf("reflect amount: %f\n", reflectAmount);
+        //printf("Summed reflection color: %f,%f,%f\n", reflectedPart[0], reflectedPart[1], reflectedPart[2]);
+        summedColor = reflectAmount*reflectColor + (1.0f-reflectAmount)*summedColor;
 
-        combinedColor = combinedColor*10.0f;
-        summedColor = summedColor + combinedColor;
-
+    }
 
     return summedColor;
 }
