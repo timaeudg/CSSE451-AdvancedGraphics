@@ -11,5 +11,6 @@ class Light{
 
         virtual int getMaterialIndex(){}
 
+    private:
 };
 #endif

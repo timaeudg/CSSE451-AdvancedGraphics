@@ -6,6 +6,7 @@
 #include "Material.h"
 #include "Light.h"
 #include <vector>
+#include <cfloat>
 
 class Scene{
 
@@ -33,6 +34,27 @@ class Scene{
 
         std::vector<Light*> getLights(){
             return this->lights;
+        }
+        
+        bool getHitpoint(Ray* newRay, float* intersected, int* shapeIndex){
+            float smallestIntersected = FLT_MAX;
+            int index = -1;
+            for(int j = 0; j<surfaces.size(); j++){
+                AbstractSurface* current = surfaces[j];
+                float intersected = current->checkIntersection(*newRay);
+                if(intersected>=0){
+                    if(intersected < smallestIntersected){
+                        smallestIntersected = intersected;
+                        index = j;
+                    }
+                }
+            }
+            if(index>=0){
+                *intersected = smallestIntersected;
+                *shapeIndex = index;
+                return true;
+            } 
+            return false;
         }
         
         ~Scene(){}

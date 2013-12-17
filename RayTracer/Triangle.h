@@ -37,12 +37,7 @@ class Triangle : public AbstractSurface{
             return this->materialIndex;
         }
 
-        Vector3 getNormal(Vector3 hitpoint){
-            
-            printf("triangle p1: %f, %f, %f\n", p1[0], p1[1], p1[2]);
-            printf("triangle p2: %f, %f, %f\n", p2[0], p2[1], p2[2]);
-            printf("triangle p3: %f, %f, %f\n", p3[0], p3[1], p3[2]);
-            
+        Vector3 getNormal(Vector3 hitpoint){            
             return this->normal;
         }
 

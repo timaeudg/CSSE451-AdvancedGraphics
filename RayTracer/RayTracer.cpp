@@ -20,9 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-template<typename shape>
-bool genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay, float* param, int* index);
-//Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray);
+Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal);
 Scene loadScene(objLoader* objData);
 
 int main(int argc, char ** argv)
@@ -59,61 +57,16 @@ int main(int argc, char ** argv)
     for(int i = 0; i<width; i++){
         for(int k = 0; k<height; k++){
             Ray newRay = rayGen.getRay(i, height-1-k);
-            Vector3 rayDirec = newRay.getDirection();
-            
-            float r = abs(rayDirec[0]*255);
-            float g = abs(rayDirec[1]*255);
-            float b = abs(rayDirec[2]*255);
-            int rCast = (int)r;
-            int gCast = (int)g;
-            int bCast = (int)b;
-            
 
             float paramVal = -1.0;
             int index = -1;
-            Color rayDirectionColor = Color(rCast, gCast, bCast);
 
-            bool hit = genericGetHitpoint(scene.getSurfaces(), &newRay, &paramVal, &index);
+            bool hit = scene.getHitpoint(&newRay, &paramVal, &index);
             if(hit){
                 Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
-                Vector3 hitLoc = newRay.pointAtParameterValue(paramVal);
-                Vector3 norm = hit.getNormal();
                 
-                Material mat = scene.getMaterial(hit.getSurface()->getMaterialIndex());
-
-                Vector3 diff = mat.getDiffColor();
-                Vector3 spec = mat.getSpecColor();
-                Vector3 amb = mat.getAmbColor();
-
-                Color n = Color(0,0,0);
-
-                /*
-                Vector3 norm = hit.getNormal();
-                norm = norm*255.0f;
-                Color n = Color(abs((int)norm[0]), abs((int)norm[1]), abs((int)norm[2]));
-                */
-                for(int k = 0; k < scene.getLights().size(); k++){
-                    Light light = *(scene.getLights()[k]);
-                    
-                    Vector3 lightDir = light.getPos() - hitLoc;
-
-                    Material lightMat = scene.getMaterial(light.getMaterialIndex());
-
-                    Vector3 lightAmbient = lightMat.getAmbColor();
-                    Vector3 lightDiffuse = lightMat.getDiffColor();
-                    Vector3 lightSpec = lightMat.getSpecColor();
-
-                    Vector3 lr = 2*(lightDir.dot(norm))*norm - lightDir;
-                    Vector3 viewToCamera = scene.getCamera()->getPos() - hitLoc;
-
-                    Vector3 ambientColor = lightAmbient * amb;
-                    Vector3 diffColor = norm.dot(lightDir) * diff * lightDiffuse;
-                    Vector3 specColor = lightSpec * spec * pow((viewToCamera.dot(lr)), 100.0);
-                    
-                    Vector3 combinedColor = ambientColor + diffColor + specColor;
-                    n = Color(abs((int)combinedColor[0]), abs((int)combinedColor[1]), abs((int)combinedColor[2]));
+                Color n = getColor(newRay, hit, scene, paramVal);
                 
-                }
                 buf.at(i, k) = n;
             } else{
                 buf.at(i, k) = Color(0,0,0);
@@ -125,39 +78,48 @@ int main(int argc, char ** argv)
     return 0;
 }
 
-template<typename shape>
-bool genericGetHitpoint(std::vector<shape*>* shapes, Ray* newRay, float* intersected, int* shapeIndex){
-    float smallestIntersected = FLT_MAX;
-    int index = -1;
-    for(int j = 0; j<shapes->size(); j++){
-        shape* current = (*shapes)[j];
-        float intersected = current->checkIntersection(*newRay);
-        if(intersected>=0){
-            if(intersected < smallestIntersected){
-                smallestIntersected = intersected;
-                index = j;
-            }
-        }
-    }
-    if(index>=0){
-        *intersected = smallestIntersected;
-        *shapeIndex = index;
-        return true;
-    } 
-    return false;
+Color getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal){
+    Vector3 hitLoc = ray.pointAtParameterValue(paramVal);
+    Vector3 norm = hit.getNormal();
+    
+    Material mat = scene.getMaterial(hit.getSurface()->getMaterialIndex());
 
-}
-/*
-Hitpoint* getPriorityHitpoint(Scene* scene, Ray* ray){
-    Hitpoint* hitpoint = genericGetHitpoint((*scene).getSurfaces(), ray);
-//    printf("hitpoint norm check: %f,%f,%f\n", hitpoint->getNormal()[0], hitpoint->getNormal()[1], hitpoint->getNormal()[2]); 
-    if(hitpoint != NULL){
-        return hitpoint;
-    } else {
-        return NULL;
+    Vector3 diff = mat.getDiffColor();
+    Vector3 spec = mat.getSpecColor();
+    Vector3 amb = mat.getAmbColor();
+
+    Color n = Color(0,0,0);
+    
+    for(int k = 0; k < scene.getLights().size(); k++){
+        Light* light = scene.getLights()[k];
+        
+        Vector3 lightDir = (light->getPos() - hitLoc).normalize();
+
+        Material lightMat = scene.getMaterial(light->getMaterialIndex());
+
+        Vector3 lightAmbient = lightMat.getAmbColor();
+        Vector3 lightDiffuse = lightMat.getDiffColor();
+        Vector3 lightSpec = lightMat.getSpecColor();
+        
+        Vector3 lr = (2*(lightDir.dot(norm))*norm - lightDir).normalize();
+        Vector3 viewToCamera = (scene.getCamera()->getPos() - hitLoc).normalize();
+        
+        Vector3 ambientColor = (lightAmbient * amb);
+        Vector3 diffColor = norm.dot(lightDir) * diff * lightDiffuse;
+        Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), 10.0));
+        
+        Ray shadowRay = Ray(hit.getHitpoint(), lightDir);
+        
+        //bool inShadow = traceShadowRay(scene, shadowRay)
+        
+        Vector3 combinedColor = ambientColor+diffColor+specColor;
+        combinedColor = combinedColor*20.0f;
+        
+        n = Color(abs((int)combinedColor[0]), abs((int)combinedColor[1]), abs((int)combinedColor[2]));
     }
+    return n;
 }
-*/
+
 Scene loadScene(objLoader* objData){
     Camera camera;
     std::vector<Material> materials = std::vector<Material>();
@@ -213,6 +175,8 @@ Scene loadScene(objLoader* objData){
             Vector3 ambColor  = Vector3( ambR,  ambG,  ambB);
             Vector3 diffColor = Vector3(diffR, diffG, diffB);
             Vector3 specColor = Vector3(specR, specG, specB);
+            
+            printf("Found a material, index will be %i\n", j);
             
             Material mat = Material(ambColor, diffColor, specColor);
             materials.push_back(mat);
@@ -293,9 +257,13 @@ Scene loadScene(objLoader* objData){
            int materialIndex = (*objData).lightPointList[i]->material_index;
 
            Vector3 pos = Vector3(posX, posY, posZ);
+           
 
            PointLight* light = new PointLight(pos, materialIndex);
+           printf("Light Found, x,y,z,mat: %f,%f,%f,%i\n", light->getPos()[0], light->getPos()[1], light->getPos()[2], light->getMaterialIndex());
            lights.push_back(light);
+           
+           Light* derp = lights[0];
         }
     }
     
