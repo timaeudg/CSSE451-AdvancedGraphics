@@ -69,7 +69,7 @@ int main(int argc, char ** argv)
                 
                 Color pixelColor;
                 Vector3 colorVector = getColor(newRay, hit, scene, paramVal, -1);
-                colorVector = colorVector * 10.0f;
+                colorVector = colorVector * 20.0f;
                 //printf("colorvector from getColor: %f,%f,%f\n", colorVector[0], colorVector[1], colorVector[2]);
                 pixelColor = Color(abs((int)colorVector[0]), abs((int)colorVector[1]), abs((int)colorVector[2]));
 
@@ -97,6 +97,7 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
     Vector3 spec = mat.getSpecColor();
     Vector3 amb = mat.getAmbColor();
 
+    //printf("mat diff: %f,%f,%f\n", diff[0], diff[1], diff[2]);
     Vector3 summedColor = Vector3(0,0,0);
     
     for(int k = 0; k < scene.getLights().size(); k++){
@@ -112,28 +113,30 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
         Vector3 lightAmbient = lightMat.getAmbColor();
         Vector3 lightDiffuse = lightMat.getDiffColor();
         Vector3 lightSpec = lightMat.getSpecColor();
+        //printf("light diff: %f,%f,%f\n", lightDiffuse[0], lightDiffuse[1], lightDiffuse[2]);
          
         Vector3 ambientColor = (lightAmbient * amb);
         Vector3 diffColor = norm.dot(lightDir) * diff * lightDiffuse;
-        /*
-            The coefficent here comes from the material, need to load that
-        */
+        //printf("diffColor: %f,%f,%f\n", diffColor[0],diffColor[1], diffColor[2]);
         //printf("mat exponent: %f\n", mat.getExponent());
         Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), mat.getExponent()));
 
+        
         //Shadow code
         Ray shadowRay = Ray(hit.getHitpoint(0.99f), lightDir);
         
         bool inShadow = traceShadowRay(scene, shadowRay);
 
         Vector3 combinedColor = ambientColor;
-        if(!inShadow){
+        if(!inShadow || inShadow){
             combinedColor = combinedColor+diffColor+specColor;
+            //combinedColor = specColor;
         }
         summedColor = summedColor + combinedColor;
     }
     //printf("summedColor: %f,%f,%f\n", summedColor[0], summedColor[1], summedColor[2]);
 
+    /*
     //Reflection code
     Vector3 reflectColor = Vector3(0,0,0);
     int hitpointIndex = -1;
@@ -142,10 +145,6 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
     float reflectAmount = mat.getReflect();
     Vector3 viewReflection = (2*(viewToCamera.dot(norm))*norm - viewToCamera).normalize();
     //printf("reflectAmount: %f\n", reflectAmount); 
-    /*
-     *How should I stop the recursion here? 
-     *I could just do straight depth, but is there another way based off of light intensity???
-     */
     Ray reflectionRay = Ray(hit.getHitpoint(0.99f), viewReflection);
     bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointIndex);
     
@@ -170,6 +169,7 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
         summedColor = reflectAmount*reflectColor + (1.0f-reflectAmount)*summedColor;
 
     }
+    */
 
     return summedColor;
 }
@@ -177,6 +177,7 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
 bool traceShadowRay(Scene &scene, Ray &ray){
     float intersected = -1.0;
     int index = -1;
+    //Find the distance to light and check if it hits the light first
     bool hitSomething = scene.getHitpoint(&ray, &intersected, &index);
     if(hitSomething){
         return true;
