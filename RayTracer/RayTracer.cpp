@@ -21,7 +21,7 @@
 #include <stdlib.h>
 
 Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cumulativePercent);
-bool traceShadowRay(Scene &scene, Ray &ray);
+bool traceShadowRay(Scene &scene, Ray &ray, float lightDist);
 Scene loadScene(objLoader* objData);
 
 int main(int argc, char ** argv)
@@ -64,13 +64,11 @@ int main(int argc, char ** argv)
 
             bool hit = scene.getHitpoint(&newRay, &paramVal, &index);
             if(hit){
-                //printf("found a hit\n");
                 Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
                 
                 Color pixelColor;
                 Vector3 colorVector = getColor(newRay, hit, scene, paramVal, -1);
-                colorVector = colorVector * 20.0f;
-                //printf("colorvector from getColor: %f,%f,%f\n", colorVector[0], colorVector[1], colorVector[2]);
+                colorVector = colorVector * 10.0f;
                 pixelColor = Color(abs((int)colorVector[0]), abs((int)colorVector[1]), abs((int)colorVector[2]));
 
                 buf.at(i, k) = pixelColor;
@@ -91,17 +89,15 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
     Vector3 norm = hit.getNormal();
     
     //grab material and material values
-    Material mat = scene.getMaterial(hit.getSurface()->getMaterialIndex());
+    Material hitObjMat = scene.getMaterial(hit.getSurface()->getMaterialIndex());
 
-    Vector3 diff = mat.getDiffColor();
-    Vector3 spec = mat.getSpecColor();
-    Vector3 amb = mat.getAmbColor();
+    Vector3 matDiff = hitObjMat.getDiffColor();
+    Vector3 matSpec = hitObjMat.getSpecColor();
+    Vector3 matAmb = hitObjMat.getAmbColor();
 
-    //printf("mat diff: %f,%f,%f\n", diff[0], diff[1], diff[2]);
     Vector3 summedColor = Vector3(0,0,0);
     
     for(int k = 0; k < scene.getLights().size(); k++){
-        //printf("doing light calcs\n");
         Light* light = scene.getLights()[k];
         
         //Light Vectors and resources
@@ -113,39 +109,35 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
         Vector3 lightAmbient = lightMat.getAmbColor();
         Vector3 lightDiffuse = lightMat.getDiffColor();
         Vector3 lightSpec = lightMat.getSpecColor();
-        //printf("light diff: %f,%f,%f\n", lightDiffuse[0], lightDiffuse[1], lightDiffuse[2]);
          
-        Vector3 ambientColor = (lightAmbient * amb);
-        Vector3 diffColor = norm.dot(lightDir) * diff * lightDiffuse;
-        //printf("diffColor: %f,%f,%f\n", diffColor[0],diffColor[1], diffColor[2]);
-        //printf("mat exponent: %f\n", mat.getExponent());
-        Vector3 specColor = (lightSpec * spec * pow((viewToCamera.dot(lr)), mat.getExponent()));
+        Vector3 ambientColor = (lightAmbient * matAmb);
+        Vector3 diffColor = norm.dot(lightDir) * matDiff * lightDiffuse;
+        Vector3 specColor = (lightSpec * matSpec * pow((viewToCamera.dot(lr)), hitObjMat.getExponent()));
 
         
         //Shadow code
-        Ray shadowRay = Ray(hit.getHitpoint(0.99f), lightDir);
-        
-        bool inShadow = traceShadowRay(scene, shadowRay);
+        //get the offset location to prevent shadow acne
+        Vector3 offsetHitLoc = hit.getHitpoint(0.999f);
+        Ray shadowRay = Ray(offsetHitLoc, lightDir);
+        float lightDist = (light->getPos() - offsetHitLoc).squaredLength();
+
+        bool inShadow = traceShadowRay(scene, shadowRay, lightDist);
 
         Vector3 combinedColor = ambientColor;
-        if(!inShadow || inShadow){
+        if(!inShadow){
             combinedColor = combinedColor+diffColor+specColor;
-            //combinedColor = specColor;
         }
         summedColor = summedColor + combinedColor;
     }
-    //printf("summedColor: %f,%f,%f\n", summedColor[0], summedColor[1], summedColor[2]);
 
-    /*
     //Reflection code
     Vector3 reflectColor = Vector3(0,0,0);
     int hitpointIndex = -1;
     float hitpointParam = -1.0;
 
-    float reflectAmount = mat.getReflect();
+    float reflectAmount = hitObjMat.getReflect();
     Vector3 viewReflection = (2*(viewToCamera.dot(norm))*norm - viewToCamera).normalize();
-    //printf("reflectAmount: %f\n", reflectAmount); 
-    Ray reflectionRay = Ray(hit.getHitpoint(0.99f), viewReflection);
+    Ray reflectionRay = Ray(hit.getHitpoint(0.999f), viewReflection);
     bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointIndex);
     
     if(hitSomething && reflectAmount>0){
@@ -161,25 +153,25 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
         if(toPass>= 0.10){
             reflectColor = getColor(reflectionRay, reflectHit, scene, hitpointParam, toPass);
         }
-        //printf("reflect color: %f,%f,%f\n", reflectColor[0], reflectColor[1], reflectColor[2]);
         Vector3 reflectedPart = reflectAmount*reflectColor;
         Vector3 absorbedPart = (1.0f - reflectAmount)*reflectColor;
-        //printf("reflect amount: %f\n", reflectAmount);
-        //printf("Summed reflection color: %f,%f,%f\n", reflectedPart[0], reflectedPart[1], reflectedPart[2]);
         summedColor = reflectAmount*reflectColor + (1.0f-reflectAmount)*summedColor;
 
     }
-    */
+    
 
     return summedColor;
 }
 
-bool traceShadowRay(Scene &scene, Ray &ray){
+bool traceShadowRay(Scene &scene, Ray &ray, float lightDist){
     float intersected = -1.0;
     int index = -1;
     //Find the distance to light and check if it hits the light first
     bool hitSomething = scene.getHitpoint(&ray, &intersected, &index);
-    if(hitSomething){
+
+    Vector3 intersectedLoc = ray.pointAtParameterValue(intersected);
+    float hitDist = (intersectedLoc - ray.getOrigin()).squaredLength();
+    if(hitSomething && hitDist<=lightDist){
         return true;
     }
     return false;
