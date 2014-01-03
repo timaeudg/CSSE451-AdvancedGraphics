@@ -15,6 +15,7 @@
 #include "Material.h"
 #include "Light.h"
 #include "PointLight.h"
+#include "ToneMapper.h"
 #include <cfloat>
 #include <math.h>
 #include <stdio.h>
@@ -43,8 +44,7 @@ int main(int argc, char ** argv)
             height = atoi(argv[3]);
         }
     }
-
-    Buffer buf = Buffer(width, height);
+    ToneMapper buf = ToneMapper(width, height);
     
     //load camera data
     objLoader objData = objLoader();
@@ -53,7 +53,7 @@ int main(int argc, char ** argv)
     Scene scene = loadScene(&objData);
     printf("Scene loaded correctly\n");
     
-    printf("Before Ray generation\n");
+    printf("Ray generation\n");
     RayGenerator rayGen = RayGenerator(scene.getCamera(), width, height, 90.0);
     for(int i = 0; i<width; i++){
         for(int k = 0; k<height; k++){
@@ -68,17 +68,18 @@ int main(int argc, char ** argv)
                 
                 Color pixelColor;
                 Vector3 colorVector = getColor(newRay, hit, scene, paramVal, -1);
-                colorVector = colorVector * 10.0f;
-                pixelColor = Color(abs((int)colorVector[0]), abs((int)colorVector[1]), abs((int)colorVector[2]));
 
-                buf.at(i, k) = pixelColor;
+                buf.at(i, k) = colorVector;
             } else{
-                buf.at(i, k) = Color(0,0,0);
+                buf.at(i, k) = Vector3(0,0,0);
             }
         }
     }
+    printf("Tone mapping\n");
+    Buffer mappedBuf = buf.toneMap();
     printf("Writing file\n");
-    simplePPM_write_ppm("test.ppm", buf.getWidth(), buf.getHeight(), (unsigned char*)&buf.at(0,0));
+
+    simplePPM_write_ppm("test.ppm", mappedBuf.getWidth(), mappedBuf.getHeight(), (unsigned char*)&mappedBuf.at(0,0));
     return 0;
 }
 
