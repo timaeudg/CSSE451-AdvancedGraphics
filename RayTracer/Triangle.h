@@ -41,6 +41,33 @@ class Triangle : public AbstractSurface{
             return this->normal;
         }
 
+        Vector3 getCenterPoint(){
+           return (this->p1 + this->p2 + this->p3)/3.0;
+        }
+
+        Vector3 getBBMax(){
+            float maxX =(p1[0]<p2[0])?p2[0]:p1[0];
+            maxX = (maxX < p3[0])?p3[0]:maxX;
+            float maxY =(p1[1]<p2[1])?p2[1]:p1[1];
+            maxY = (maxY < p3[1])?p3[1]:maxY;
+            float maxZ =(p1[2]<p2[2])?p2[2]:p1[2];
+            maxZ = (maxZ < p3[2])?p3[2]:maxZ;
+
+            return Vector3(maxX, maxY, maxZ);
+        }
+
+        Vector3 getBBMin(){
+            float minX =(p1[0]>p2[0])?p2[0]:p1[0];
+            minX = (minX > p3[0])?p3[0]:minX;
+            float minY =(p1[1]>p2[1])?p2[1]:p1[1];
+            minY = (minY > p3[1])?p3[1]:minY;
+            float minZ =(p1[2]>p2[2])?p2[2]:p1[2];
+            minZ = (minZ > p3[2])?p3[2]:minZ;
+
+            return Vector3(minX, minY, minZ);
+
+        }
+
     private:
         Vector3 p1;
         Vector3 p2;

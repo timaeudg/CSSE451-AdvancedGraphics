@@ -130,7 +130,7 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
         }
         summedColor = summedColor + combinedColor;
     }
-
+/*
     //Reflection code
     Vector3 reflectColor = Vector3(0,0,0);
     int hitpointIndex = -1;
@@ -155,12 +155,12 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
             reflectColor = getColor(reflectionRay, reflectHit, scene, hitpointParam, toPass);
         }
         Vector3 reflectedPart = reflectAmount*reflectColor;
-        Vector3 absorbedPart = (1.0f - reflectAmount)*reflectColor;
-        summedColor = reflectAmount*reflectColor + (1.0f-reflectAmount)*summedColor;
+        Vector3 absorbedPart = (1.0f - reflectAmount)*summedColor;
+        summedColor = reflectedPart + absorbedPart;
 
     }
     
-
+*/
     return summedColor;
 }
 

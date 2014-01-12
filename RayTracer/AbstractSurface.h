@@ -16,6 +16,12 @@ class AbstractSurface{
 
         virtual int getMaterialIndex(){}
 
+        virtual Vector3 getCenterPoint(){}
+
+        virtual Vector3 getBBMin(){}
+
+        virtual Vector3 getBBMax(){}
+
     private:
 };
 

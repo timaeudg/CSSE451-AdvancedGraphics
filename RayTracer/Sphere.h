@@ -73,6 +73,18 @@ class Sphere : public AbstractSurface{
             return this->materialIndex;
         }
 
+        Vector3 getCenterPoint(){
+            return this->centerPoint;
+        }
+
+        Vector3 getBBMax(){
+            return this->centerPoint + Vector3(this->radius, this->radius, this->radius);
+        }
+
+        Vector3 getBBMin(){
+            return this->centerPoint - Vector3(this->radius, this->radius, this->radius);
+        }
+
     private:
         float radius;
         Vector3 centerPoint;
