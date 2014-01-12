@@ -25,15 +25,32 @@ private:
             boundingBox.expandBox(surfaces[j]);
         }
         
-        Vector3 axisLengths = boundingBox.getAxisLengths();
-        int longestAxis = 0;
-        if(axisLengths[1] > axisLengths[2] && axisLengths[1] > axisLengths[0]){
-            longestAxis = 1;
-        } else if(axisLengths[2] > axisLengths[1] && axisLengths[2] > axisLengths[0]){
-            longestAxis = 2;
+        if(surfaces.size()>1)
+            Vector3 axisLengths = boundingBox.getAxisLengths();
+            int longestAxis = 0;
+            if(axisLengths[1] > axisLengths[2] && axisLengths[1] > axisLengths[0]){
+                longestAxis = 1;
+            } else if(axisLengths[2] > axisLengths[1] && axisLengths[2] > axisLengths[0]){
+                longestAxis = 2;
+            }
+            
+            std::vector<AbstractSurface*> sortedSurfaces = merge_sort(surfaces, longestAxis);
+            int splitPoint = sortedSurfaces.size()/2;
+            std::vector<AbstractSurface*> left = std::vector<AbstractSurface*>();
+            std::vector<AbstractSurface*> right = std::vector<AbstractSurface*>();
+            
+            for(int j = 0; j<splitPoint; j++){
+                left.push_back(sortedSurfaces[j]);
+            }
+            for(int j = splitPoint; j < sortedSurfaces.size(); j++){
+                right.push_back(sortedSurfaces[j]);
+            }
+        } else {
+            //base case
         }
+        //recurse this function for left and right
         
-        std::vector<AbstractSurface*> sortedSurfaces = merge_sort(surfaces, longestAxis);
+        //Set node
     }
     
     //! \brief Performs a recursive merge sort on the given vector
