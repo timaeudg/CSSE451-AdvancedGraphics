@@ -1,0 +1,110 @@
+#ifndef __AABBTREE
+#define __AABBTREE
+
+#include <vector>
+
+class AABBTree{
+
+public:
+    AABBTree(){
+        
+    }
+    
+    AABBTree(std::vector<AbstractSurface*> surfaces){
+        createTree(surfaces);
+    }
+    
+    ~AABBTree(){}
+
+private:
+    std::vector<AABBNode> indeces = std::vector<int>();
+    
+    void createTree(std::vector<AbstractSurface*> surfaces, int startingLoc = 0){
+        Box boundingBox = Box();
+        for(int j = 0; j < surfaces.size(); j++){
+            boundingBox.expandBox(surfaces[j]);
+        }
+        
+        Vector3 axisLengths = boundingBox.getAxisLengths();
+        int longestAxis = 0;
+        if(axisLengths[1] > axisLengths[2] && axisLengths[1] > axisLengths[0]){
+            longestAxis = 1;
+        } else if(axisLengths[2] > axisLengths[1] && axisLengths[2] > axisLengths[0]){
+            longestAxis = 2;
+        }
+        
+        std::vector<AbstractSurface*> sortedSurfaces = merge_sort(surfaces, longestAxis);
+    }
+    
+    //! \brief Performs a recursive merge sort on the given vector
+    //! \param vec The vector to be sorted using the merge sort
+    //! \return The sorted resultant vector after merge sort is
+    //! complete.
+    //! Adapted from: http://en.wikibooks.org/wiki/Algorithm_Implementation/Sorting/Merge_sort#C.2B.2B
+    std::vector<AbstractSurface*> merge_sort(std::vector<AbstractSurface*>& vec, int axisIndex = 0)
+    {
+        // Termination condition: List is completely sorted if it
+        // only contains a single element.
+        if(vec.size() == 1)
+        {
+            return vec;
+        }
+    
+        // Determine the location of the middle element in the vector
+        std::vector<Vector3>::iterator middle = vec.begin() + (vec.size() / 2);
+    
+        vector<Vector3> left(vec.begin(), middle);
+        vector<Vector3> right(middle, vec.end());
+    
+        // Perform a merge sort on the two smaller vectors
+        left = merge_sort(left);
+        right = merge_sort(right);
+    
+        return merge(left, right);
+    }
+    
+    //! \brief Merges two sorted vectors into one sorted vector
+    //! \param left A sorted vector of integers
+    //! \param right A sorted vector of integers
+    //! \return A sorted vector that is the result of merging two sorted
+    //! vectors.
+    //! Adapted from: http://en.wikibooks.org/wiki/Algorithm_Implementation/Sorting/Merge_sort#C.2B.2B
+    vector<AbstractSurface*> merge(const vector<AbstractSurface*>& left, const vector<AbstractSurface*>& right, int axisIndex = 0)
+    {
+        // Fill the resultant vector with sorted results from both vectors
+        vector<Vector3> result;
+        unsigned left_it = 0, right_it = 0;
+    
+        while(left_it < left.size() && right_it < right.size())
+        {
+            // If the left value is smaller than the right it goes next
+            // into the resultant vector
+            if(left[left_it]->getCenterPoint()[axisIndex] < right[right_it]->getCenterPoint()[axisIndex])
+            {
+                result.push_back(left[left_it]);
+                left_it++;
+            }
+            else
+            {
+                result.push_back(right[right_it]);
+                right_it++;
+            }
+        }
+    
+        // Push the remaining data from both vectors onto the resultant
+        while(left_it < left.size())
+        {
+            result.push_back(left[left_it]);
+            left_it++;
+        }
+    
+        while(right_it < right.size())
+        {
+            result.push_back(right[right_it]);
+            right_it++;
+        }
+    
+        return result;
+    }
+};
+#endif
