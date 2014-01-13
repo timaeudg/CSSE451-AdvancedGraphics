@@ -63,9 +63,67 @@ public Box : public AbstractSurface{
             return axisVector;
         }
 
+        float checkIntersection(Ray ray){
+            Vector3 origin = ray.getOrigin();
+            float oX = origin[0];
+            float oY = origin[1];
+            float oZ = origin[2];
+
+            Vector3 direction = ray.getDirection();
+            float dirX = direction[0];
+            float dirY = direction[1];
+            float dirZ = direction[2];
+
+            float minTx = (min[0] - oX) / dirX;
+            float minTy = (min[1] - oY) / dirY;
+            float minTz = (min[2] - oZ) / dirZ;
+
+            float maxTx = (max[0] - oX) / dirX;
+            float maxTy = (max[1] - oY) / dirY;
+            float maxTz = (max[2] - oZ) / dirZ;
+
+            Vector2 intersection = getIntersection(minTx, maxTx, minTy, maxTy);
+            intersection = getIntersection(intersection[0], intersection[1], minTz, maxTz);
+
+            if(intersection[0] > intersection[1]){
+                return intersection[0];
+            } else { 
+                return intersection[1];
+            }
+        }
+        
+
     private:
         Vector3 max;
         Vector3 min;
+        
+        Vector2 getIntersection(float minA, float maxA, float minB, float maxB){
+            float resultMax;
+            float resultMin;
+            if(maxB < maxA){
+                resultMax = maxB
+                if(resultMax > minA){
+                    if(minA > minB){
+                        resultMin = minA;
+                    } else {
+                        resultMin = minB;
+                    }
+                    return Vector2(resultMin, resultMax);
+                }
+            } else {
+                resultMax = maxA;
+                if(resultMax > minB){
+                    if(minA > minB){
+                        resultMin = minA;
+                    } else { 
+                        resultMin = minB;
+                    }
+                    return Vector2(resultMin, resultMax);
+                }
+            }
+            
+            return Vector2(-1.0, -1.0);
+        }
 
 };
 
