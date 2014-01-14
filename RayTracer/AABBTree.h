@@ -2,6 +2,8 @@
 #define __AABBTREE
 
 #include <vector>
+#include "AABB.h"
+#include "AABBNode.h"
 
 class AABBTree{
 
@@ -11,21 +13,22 @@ public:
     }
     
     AABBTree(std::vector<AbstractSurface*> surfaces){
-        createTree(surfaces);
+        AABBNode* head = createTree(surfaces);
+        this->root = head;
     }
     
     ~AABBTree(){}
 
 private:
-    std::vector<AABBNode> indeces = std::vector<int>();
+    AABBNode* root;
     
-    void createTree(std::vector<AbstractSurface*> surfaces, int startingLoc = 0){
-        Box boundingBox = Box();
+    AABBNode* createTree(std::vector<AbstractSurface*> surfaces){
+        AABB boundingBox = AABB();
         for(int j = 0; j < surfaces.size(); j++){
             boundingBox.expandBox(surfaces[j]);
         }
         
-        if(surfaces.size()>1)
+        if(surfaces.size()>1){
             Vector3 axisLengths = boundingBox.getAxisLengths();
             int longestAxis = 0;
             if(axisLengths[1] > axisLengths[2] && axisLengths[1] > axisLengths[0]){
@@ -45,12 +48,17 @@ private:
             for(int j = splitPoint; j < sortedSurfaces.size(); j++){
                 right.push_back(sortedSurfaces[j]);
             }
+
+            AABBNode* leftNode = createTree(left);
+            AABBNode* rightNode = createTree(right);
+
+            AABBNode* parent = AABBNode(boundingBox, leftNode, rightNode);
+            return parent;
         } else {
             //base case
+            AABBNode leaf = AABBNode(surfaces[0], NULL, NULL);
+            return &leaf;
         }
-        //recurse this function for left and right
-        
-        //Set node
     }
     
     //! \brief Performs a recursive merge sort on the given vector
@@ -86,10 +94,10 @@ private:
     //! \return A sorted vector that is the result of merging two sorted
     //! vectors.
     //! Adapted from: http://en.wikibooks.org/wiki/Algorithm_Implementation/Sorting/Merge_sort#C.2B.2B
-    vector<AbstractSurface*> merge(const vector<AbstractSurface*>& left, const vector<AbstractSurface*>& right, int axisIndex = 0)
+    std::vector<AbstractSurface*> merge(const std::vector<AbstractSurface*>& left, const std::vector<AbstractSurface*>& right, int axisIndex = 0)
     {
         // Fill the resultant vector with sorted results from both vectors
-        vector<Vector3> result;
+        std::vector<Vector3> result;
         unsigned left_it = 0, right_it = 0;
     
         while(left_it < left.size() && right_it < right.size())

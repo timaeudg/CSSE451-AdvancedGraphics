@@ -10,13 +10,17 @@ public:
         
     }
     
-    AABBNode(std::vector<AbstractSurface*> surfaces){
-        
+    AABBNode(AbstractSurface* surface, AABBNode* left, AABBNode* right){
+        this->surface = surface;
+        this->left = left;
+        this->right = right;
     }
     
     ~AABBNode(){}
 
 private:
-    std::vector<int> indeces = std::vector<int>();
+    AbstractSurface* surface;
+    AABBNode* left;
+    AABBNode* right;
 };
 #endif

@@ -7,6 +7,7 @@
 #include "Light.h"
 #include <vector>
 #include <cfloat>
+#include "AABBTree.h"
 
 class Scene{
 
@@ -21,6 +22,7 @@ class Scene{
             //get bb max & min
             this->sceneBBMin = getSceneBBMin(surfaces);
             this->sceneBBMax = getSceneBBMax(surfaces);
+            this->sceneTree = AABBTree(surfaces);
         }
         
         Camera* getCamera(){
@@ -67,6 +69,8 @@ class Scene{
         std::vector<AbstractSurface*> surfaces;
         std::vector<Material> materials;
         std::vector<Light*> lights;
+
+        AABBTree sceneTree;
         
         Vector3 sceneBBMax;
         Vector3 sceneBBMin;
@@ -103,13 +107,13 @@ class Scene{
                 if(!sceneMinSet){
                     sceneMin = bbMin;
                 } else{
-                    if(bbMax[0] < sceneMin[0]){
+                    if(bbMin[0] < sceneMin[0]){
                         sceneMin[0] = bbMin[0];
                     }
-                    if(bbMax[1] < sceneMin[1]){
+                    if(bbMin[1] < sceneMin[1]){
                         sceneMin[1] = bbMin[1];
                     }
-                    if(bbMax[2] < sceneMin[2]){
+                    if(bbMin[2] < sceneMin[2]){
                         sceneMin[2] = bbMin[2];
                     }
                 }

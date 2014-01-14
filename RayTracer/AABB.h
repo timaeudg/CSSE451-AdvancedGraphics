@@ -1,23 +1,23 @@
-#ifndef __BOX
-#define __BOX
+#ifndef __AABB
+#define __AABB
 
 #include "AbstractSurface.h"
 #include "GenVector.h"
 
-public Box : public AbstractSurface{
+class AABB : public AbstractSurface{
 
     public:
-        Box(){
+        AABB(){
             this->min = Vector3(0,0,0);
             this->max = Vector3(0,0,0);
         }
 
-        Box(Vector3 min, Vector3 max){
+        AABB(Vector3 min, Vector3 max){
             this->min = min;
             this->max = max;
         }
 
-        ~Box(){}
+        ~AABB(){}
         
         Vector3 getBBMin(){
             return this->min;
@@ -28,7 +28,7 @@ public Box : public AbstractSurface{
         }
         
         Vector3 getCenterPoint(){
-            return Vector3((this->min[0]+this->max[0])/2.0f, (this->min[1]+this->max[1])/2.0f, (this->min[2]+this->max[2])/2.0f
+            return Vector3((this->min[0]+this->max[0])/2.0f, (this->min[1]+this->max[1])/2.0f, (this->min[2]+this->max[2])/2.0f);
         }
         
         void expandBox(AbstractSurface& shape){
