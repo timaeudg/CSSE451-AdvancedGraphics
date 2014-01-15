@@ -42,10 +42,13 @@ public:
             } else if(leftParam < 0){
                 *paramMutate = rightParam;
                 return rightSurface;
-            } else {
+            } else if(rightParam < 0){
                 *paramMutate = leftParam;
                 return leftSurface;
-            }   
+            } else{
+                *paramMutate =(rightParam < leftParam) ? rightParam : leftParam;
+                return (rightParam < leftParam) ? rightSurface : leftSurface;
+            }
         } else {
             *paramMutate = paramVal;
             return NULL;

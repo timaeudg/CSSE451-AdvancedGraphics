@@ -43,7 +43,9 @@ private:
             }
             
             std::vector<AbstractSurface*> sortedSurfaces = merge_sort(surfaces, longestAxis);
-            int splitPoint = sortedSurfaces.size()/2;
+            
+            int splitPoint = (sortedSurfaces.size()/2);
+
             std::vector<AbstractSurface*> left = std::vector<AbstractSurface*>();
             std::vector<AbstractSurface*> right = std::vector<AbstractSurface*>();
             
