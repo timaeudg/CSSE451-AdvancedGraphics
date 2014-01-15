@@ -42,7 +42,7 @@ class Scene{
         }
         
         bool getHitpoint(Ray* newRay, float* intersected, AbstractSurface** shapeIndex){
-        /*
+            /*
             float smallestIntersected = FLT_MAX;
             int index = -1;
             for(int j = 0; j<surfaces.size(); j++){
@@ -57,10 +57,11 @@ class Scene{
             }
             if(index>=0){
                 *intersected = smallestIntersected;
-                *shapeIndex = index;
+                *shapeIndex = surfaces[index];
                 return true;
             }
             */
+            
             float intersectedVal = -1.0f;
             AbstractSurface* surface = this->sceneTree.getIntersection(*newRay, &intersectedVal);
 
@@ -71,6 +72,7 @@ class Scene{
                 return true;
             }
             return false;
+            
         }
         
         ~Scene(){}

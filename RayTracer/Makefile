@@ -13,7 +13,7 @@ PROGRAM=a.out
 DEL=rm -rf
 LIBS=-lm
 WARN=-w
-OP=-O0
+OP=-O3
 FLAGS= $(WARN) $(OP)
 
 # setup object list
