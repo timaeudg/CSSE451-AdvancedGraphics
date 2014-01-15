@@ -22,7 +22,7 @@ class Scene{
             //get bb max & min
             this->sceneBBMin = getSceneBBMin(surfaces);
             this->sceneBBMax = getSceneBBMax(surfaces);
-            this->sceneTree = AABBTree(surfaces);
+            this->sceneTree = AABBTree(this->surfaces);
         }
         
         Camera* getCamera(){
@@ -41,7 +41,8 @@ class Scene{
             return this->lights;
         }
         
-        bool getHitpoint(Ray* newRay, float* intersected, int* shapeIndex){
+        bool getHitpoint(Ray* newRay, float* intersected, AbstractSurface** shapeIndex){
+        /*
             float smallestIntersected = FLT_MAX;
             int index = -1;
             for(int j = 0; j<surfaces.size(); j++){
@@ -58,7 +59,17 @@ class Scene{
                 *intersected = smallestIntersected;
                 *shapeIndex = index;
                 return true;
-            } 
+            }
+            */
+            float intersectedVal = -1.0f;
+            AbstractSurface* surface = this->sceneTree.getIntersection(*newRay, &intersectedVal);
+
+            if(intersectedVal >= 0){
+                //printf("intersectedVal: %f\n", intersectedVal);
+                *intersected = intersectedVal;
+                *shapeIndex = surface;
+                return true;
+            }
             return false;
         }
         

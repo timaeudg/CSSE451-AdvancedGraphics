@@ -18,18 +18,23 @@ public:
     }
     
     ~AABBTree(){}
+    
+    AbstractSurface* getIntersection(Ray& ray, float* paramVal){
+        return this->root->getIntersection(ray, paramVal);
+    }
 
 private:
     AABBNode* root;
     
     AABBNode* createTree(std::vector<AbstractSurface*> surfaces){
-        AABB boundingBox = AABB();
+        AABB* boundingBox = new AABB();
         for(int j = 0; j < surfaces.size(); j++){
-            boundingBox.expandBox(surfaces[j]);
+            boundingBox->expandBox(*surfaces[j]);
         }
         
         if(surfaces.size()>1){
-            Vector3 axisLengths = boundingBox.getAxisLengths();
+            Vector3 axisLengths = boundingBox->getAxisLengths();
+            printf("axisLengths: %f,%f,%f\n", axisLengths[0], axisLengths[1], axisLengths[2]);
             int longestAxis = 0;
             if(axisLengths[1] > axisLengths[2] && axisLengths[1] > axisLengths[0]){
                 longestAxis = 1;
@@ -51,13 +56,12 @@ private:
 
             AABBNode* leftNode = createTree(left);
             AABBNode* rightNode = createTree(right);
-
-            AABBNode* parent = AABBNode(boundingBox, leftNode, rightNode);
+            AABBNode* parent = new AABBNode(boundingBox, leftNode, rightNode);
             return parent;
         } else {
             //base case
-            AABBNode leaf = AABBNode(surfaces[0], NULL, NULL);
-            return &leaf;
+            AABBNode* leaf = new AABBNode(surfaces[0], NULL, NULL);
+            return leaf;
         }
     }
     
@@ -76,10 +80,10 @@ private:
         }
     
         // Determine the location of the middle element in the vector
-        std::vector<Vector3>::iterator middle = vec.begin() + (vec.size() / 2);
+        std::vector<AbstractSurface*>::iterator middle = vec.begin() + (vec.size() / 2);
     
-        vector<Vector3> left(vec.begin(), middle);
-        vector<Vector3> right(middle, vec.end());
+        std::vector<AbstractSurface*> left(vec.begin(), middle);
+        std::vector<AbstractSurface*> right(middle, vec.end());
     
         // Perform a merge sort on the two smaller vectors
         left = merge_sort(left);
@@ -97,7 +101,7 @@ private:
     std::vector<AbstractSurface*> merge(const std::vector<AbstractSurface*>& left, const std::vector<AbstractSurface*>& right, int axisIndex = 0)
     {
         // Fill the resultant vector with sorted results from both vectors
-        std::vector<Vector3> result;
+        std::vector<AbstractSurface*> result;
         unsigned left_it = 0, right_it = 0;
     
         while(left_it < left.size() && right_it < right.size())

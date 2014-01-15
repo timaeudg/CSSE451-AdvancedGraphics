@@ -36,27 +36,27 @@ class AABB : public AbstractSurface{
             Vector3 shapeMin = shape.getBBMin();
             
             if(shapeMax[0] > max[0]){
-                max[0] = shapeMax[0];
+                this->max[0] = shapeMax[0];
             }
             if(shapeMax[1] > max[1]){
-                max[1] = shapeMax[1];
+                this->max[1] = shapeMax[1];
             }
             if(shapeMax[2] > max[2]){
-                max[2] = shapeMax[2];
+                this->max[2] = shapeMax[2];
             }
-            if(shapeMin[0] > min[0]){
-                min[0] = shapeMin[0];
+            if(shapeMin[0] < min[0]){
+                this->min[0] = shapeMin[0];
             }
-            if(shapeMin[1] > min[1]){
-                min[1] = shapeMin[1];
+            if(shapeMin[1] < min[1]){
+                this->min[1] = shapeMin[1];
             }
-            if(shapeMin[2] > min[2]){
-                min[2] = shapeMin[2];
+            if(shapeMin[2] < min[2]){
+                this->min[2] = shapeMin[2];
             }
         }
         
         Vector3 getAxisLengths(){
-            Vector3 axisVector = Vector(0,0,0);
+            Vector3 axisVector = Vector3(0,0,0);
             axisVector[0] = max[0]-min[0];
             axisVector[1] = max[1]-min[1];
             axisVector[2] = max[2]-min[2];
@@ -81,9 +81,35 @@ class AABB : public AbstractSurface{
             float maxTx = (max[0] - oX) / dirX;
             float maxTy = (max[1] - oY) / dirY;
             float maxTz = (max[2] - oZ) / dirZ;
-
+            
+            //due to the direction that the ray could be facing, the max value from bbmin and bbmax, may not result in coordination between
+            //the parameter values, so we need to fix that
+            
+            float transfer = 0.0;
+            if(minTx > maxTx){
+                transfer = minTx;
+                minTx = maxTx;
+                maxTx = transfer;
+            }
+            
+            if(minTy > maxTy){
+                transfer = minTy;
+                minTy = maxTy;
+                maxTy = transfer;
+            }
+            
+            if(minTz > maxTz){
+                transfer = minTz;
+                minTz = maxTz;
+                maxTz = transfer;
+            }
+            
+            //printf("min x,y,z: %f,%f,%f\n", minTx, minTy, minTz);
+            //printf("max x,y,z: %f,%f,%f\n", maxTx, maxTy, maxTz);
             Vector2 intersection = getIntersection(minTx, maxTx, minTy, maxTy);
             intersection = getIntersection(intersection[0], intersection[1], minTz, maxTz);
+            
+            //printf("AABB intersection: %f,%f\n", intersection[0], intersection[1]);
 
             if(intersection[0] > intersection[1]){
                 return intersection[0];
@@ -101,7 +127,7 @@ class AABB : public AbstractSurface{
             float resultMax;
             float resultMin;
             if(maxB < maxA){
-                resultMax = maxB
+                resultMax = maxB;
                 if(resultMax > minA){
                     if(minA > minB){
                         resultMin = minA;

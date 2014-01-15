@@ -60,11 +60,11 @@ int main(int argc, char ** argv)
             Ray newRay = rayGen.getRay(i, height-1-k);
 
             float paramVal = -1.0;
-            int index = -1;
+            AbstractSurface* surface;
 
-            bool hit = scene.getHitpoint(&newRay, &paramVal, &index);
+            bool hit = scene.getHitpoint(&newRay, &paramVal, &surface);
             if(hit){
-                Hitpoint hit = Hitpoint(newRay, paramVal, (*(scene.getSurfaces()))[index]);
+                Hitpoint hit = Hitpoint(newRay, paramVal, surface);
                 
                 Color pixelColor;
                 Vector3 colorVector = getColor(newRay, hit, scene, paramVal, -1);
@@ -130,19 +130,19 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
         }
         summedColor = summedColor + combinedColor;
     }
-/*
+
     //Reflection code
     Vector3 reflectColor = Vector3(0,0,0);
-    int hitpointIndex = -1;
+    AbstractSurface* hitpointSurface;
     float hitpointParam = -1.0;
 
     float reflectAmount = hitObjMat.getReflect();
     Vector3 viewReflection = (2*(viewToCamera.dot(norm))*norm - viewToCamera).normalize();
     Ray reflectionRay = Ray(hit.getHitpoint(0.999f), viewReflection);
-    bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointIndex);
+    bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointSurface);
     
     if(hitSomething && reflectAmount>0){
-        Hitpoint reflectHit = Hitpoint(reflectionRay, hitpointParam, (*(scene.getSurfaces()))[hitpointIndex]);
+        Hitpoint reflectHit = Hitpoint(reflectionRay, hitpointParam, hitpointSurface);
 
         float toPass = -1;
         if(cumulativePercent==-1){
@@ -160,13 +160,12 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
 
     }
     
-*/
     return summedColor;
 }
 
 bool traceShadowRay(Scene &scene, Ray &ray, float lightDist){
     float intersected = -1.0;
-    int index = -1;
+    AbstractSurface* index;
     //Find the distance to light and check if it hits the light first
     bool hitSomething = scene.getHitpoint(&ray, &intersected, &index);
 

@@ -21,7 +21,6 @@ class Triangle : public AbstractSurface{
 
             Vector3 nor = v1.cross(v2);
             nor.normalize();
-            printf("Triangle norm: %f,%f,%f\n", nor[0], nor[1], nor[2]);
             this->normal = nor;
             this->materialIndex = material;
         }

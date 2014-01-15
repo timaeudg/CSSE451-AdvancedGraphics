@@ -10,6 +10,7 @@ class AbstractSurface{
         ~AbstractSurface(){}
 
         virtual float checkIntersection(Ray ray){
+            printf("Abstract Surface Intersect. This should never happen...\n");
         }
         
         virtual Vector3 getNormal(Vector3 hitpoint){}
