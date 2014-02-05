@@ -20,6 +20,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctime>
 
 Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cumulativePercent);
 bool traceShadowRay(Scene &scene, Ray &ray, float lightDist);
@@ -51,10 +52,9 @@ int main(int argc, char ** argv)
     objData.load(argv[1]);
     
     Scene scene = loadScene(&objData);
-    printf("Scene loaded correctly\n");
     
-    printf("Ray generation\n");
     RayGenerator rayGen = RayGenerator(scene.getCamera(), width, height, 90.0);
+    #pragma omp parallel for
     for(int i = 0; i<width; i++){
         for(int k = 0; k<height; k++){
             Ray newRay = rayGen.getRay(i, height-1-k);
@@ -75,11 +75,10 @@ int main(int argc, char ** argv)
             }
         }
     }
-    printf("Tone mapping\n");
     Buffer mappedBuf = buf.toneMap();
-    printf("Writing file\n");
 
     simplePPM_write_ppm("test.ppm", mappedBuf.getWidth(), mappedBuf.getHeight(), (unsigned char*)&mappedBuf.at(0,0));
+
     return 0;
 }
 
@@ -138,7 +137,7 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
 
     float reflectAmount = hitObjMat.getReflect();
     Vector3 viewReflection = (2*(viewToCamera.dot(norm))*norm - viewToCamera).normalize();
-    Ray reflectionRay = Ray(hit.getHitpoint(0.999f), viewReflection);
+    Ray reflectionRay = Ray(hit.getHitpoint(0.9f), viewReflection);
     bool hitSomething = scene.getHitpoint(&reflectionRay, &hitpointParam, &hitpointSurface);
     
     if(hitSomething && reflectAmount>0){
@@ -151,7 +150,7 @@ Vector3 getColor(Ray &ray, Hitpoint &hit, Scene &scene, float paramVal, float cu
             toPass = cumulativePercent*reflectAmount;
         }
         
-        if(toPass>= 0.10){
+        if(toPass>= 0.05){
             reflectColor = getColor(reflectionRay, reflectHit, scene, hitpointParam, toPass);
         }
         Vector3 reflectedPart = reflectAmount*reflectColor;
@@ -205,14 +204,6 @@ Scene loadScene(objLoader* objData){
         up.normalize();
 
         camera = Camera(&camPos, &lookAt, &up);
-
-        printf("Found a camera\n");
-        printf(" position: ");
-        printf("%f %f %f\n", x, y, z);
-        printf(" looking at: ");
-        printf("%f %f %f\n", lookAt[0], lookAt[1], lookAt[2]);
-        printf(" up normal: ");
-        printf("%f %f %f\n", xUp, yUp, zUp);
     }
 
     if((*objData).materialCount > 0 && (*objData).materialList != NULL){
@@ -235,9 +226,6 @@ Scene loadScene(objLoader* objData){
             Vector3 ambColor  = Vector3( ambR,  ambG,  ambB);
             Vector3 diffColor = Vector3(diffR, diffG, diffB);
             Vector3 specColor = Vector3(specR, specG, specB);
-            
-            printf("Found a material, index will be %i\n", j);
-            printf("exponent,reflection: %f,%f\n", exponent, reflection);
             
             Material mat = Material(ambColor, diffColor, specColor, exponent, reflection);
             materials.push_back(mat);
@@ -303,13 +291,12 @@ Scene loadScene(objLoader* objData){
            
 
            PointLight* light = new PointLight(pos, materialIndex);
-           printf("Light Found, x,y,z,mat: %f,%f,%f,%i\n", light->getPos()[0], light->getPos()[1], light->getPos()[2], light->getMaterialIndex());
            lights.push_back(light);
            
            Light* derp = lights[0];
         }
     }
-    
+
     return Scene(camera, surfaces, materials, lights);
 }
 

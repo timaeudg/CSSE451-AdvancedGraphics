@@ -61,16 +61,15 @@ class Scene{
                 return true;
             }
             */
-            
             float intersectedVal = -1.0f;
             AbstractSurface* surface = this->sceneTree.getIntersection(*newRay, &intersectedVal);
 
             if(intersectedVal >= 0){
-                //printf("intersectedVal: %f\n", intersectedVal);
                 *intersected = intersectedVal;
                 *shapeIndex = surface;
                 return true;
             }
+            
             return false;
             
         }

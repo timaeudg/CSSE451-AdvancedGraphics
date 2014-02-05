@@ -34,7 +34,6 @@ private:
         
         if(surfaces.size()>1){
             Vector3 axisLengths = boundingBox->getAxisLengths();
-            printf("axisLengths: %f,%f,%f\n", axisLengths[0], axisLengths[1], axisLengths[2]);
             int longestAxis = 0;
             if(axisLengths[1] > axisLengths[2] && axisLengths[1] > axisLengths[0]){
                 longestAxis = 1;
